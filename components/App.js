@@ -13,13 +13,15 @@ async function api(url, opt) {
   return j;
 }
 const Icon = ({ d }) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>;
-const IC = { home: 'M3 11l9-8 9 8 M5 10v10h14V10', peserta: 'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M21 19v-1a4 4 0 0 0-3-3.87 M16 4.13a3 3 0 0 1 0 5.74', rekap: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', users: 'M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1' };
+const IC = { home: 'M3 11l9-8 9 8 M5 10v10h14V10', peserta: 'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M21 19v-1a4 4 0 0 0-3-3.87 M16 4.13a3 3 0 0 1 0 5.74', rekap: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', kelompok: 'M3 7h18 M3 12h18 M3 17h18', tc: 'M12 5v14 M5 12h14', users: 'M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1' };
 
 export default function App({ user }) {
   const [tcs, setTcs] = useState(null);
   const [tc, setTc] = useState('');
   const [nav, setNav] = useState('beranda');
   const [saya, setSaya] = useState(null);
+  const [bel, setBel] = useState(null);
+  const reloadTc = () => api('/api/tc').then((j) => setTcs(j.tcs)).catch(() => {});
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -37,9 +39,11 @@ export default function App({ user }) {
           </select>
         </div>
         <nav aria-label="Menu utama">
-          <button className={'nav' + (nav === 'beranda' || nav === 'saya' ? ' on' : '')} onClick={() => setNav('beranda')}><Icon d={IC.home} />Beranda</button>
+          <button className={'nav' + (nav === 'beranda' || nav === 'saya' || nav === 'belajar' ? ' on' : '')} onClick={() => setNav('beranda')}><Icon d={IC.home} />Beranda</button>
           <button className={'nav' + (nav === 'peserta' ? ' on' : '')} onClick={() => setNav('peserta')} aria-current={nav === 'peserta' ? 'page' : undefined}><Icon d={IC.peserta} />Peserta</button>
           {user.viewAll && <button className={'nav' + (nav === 'rekap' ? ' on' : '')} onClick={() => setNav('rekap')} aria-current={nav === 'rekap' ? 'page' : undefined}><Icon d={IC.rekap} />Rekap</button>}
+          {user.viewAll && <button className={'nav' + (nav === 'kelompok' ? ' on' : '')} onClick={() => setNav('kelompok')} aria-current={nav === 'kelompok' ? 'page' : undefined}><Icon d={IC.kelompok} />Kelompok</button>}
+          {user.admin && <button className={'nav' + (nav === 'tc' ? ' on' : '')} onClick={() => setNav('tc')} aria-current={nav === 'tc' ? 'page' : undefined}><Icon d={IC.tc} />TC baru</button>}
           {user.admin && <button className={'nav' + (nav === 'pengguna' ? ' on' : '')} onClick={() => setNav('pengguna')} aria-current={nav === 'pengguna' ? 'page' : undefined}><Icon d={IC.users} />Pengguna</button>}
         </nav>
         {user.admin && <ViewAs />}
@@ -57,11 +61,14 @@ export default function App({ user }) {
           </div>
         )}
         {err && <div className="err" role="alert">{err}</div>}
-        {tcs && tcs.length === 0 && nav !== 'beranda' && nav !== 'saya' && <div className="card"><h2 style={{ margin: 0 }}>Belum ada program</h2><p className="note" style={{ margin: 0 }}>Email {user.email} belum terdaftar sebagai mentor di Airtable.</p></div>}
-        {nav === 'beranda' && <Beranda user={user} openMentor={(n) => { setTc(n); setNav('peserta'); }} openSaya={(id) => { setSaya(id); setNav('saya'); }} />}
+        {tcs && tcs.length === 0 && nav !== 'beranda' && nav !== 'saya' && nav !== 'belajar' && nav !== 'tc' && nav !== 'pengguna' && <div className="card"><h2 style={{ margin: 0 }}>Belum ada program</h2><p className="note" style={{ margin: 0 }}>Email {user.email} belum terdaftar sebagai mentor di Airtable.</p></div>}
+        {nav === 'beranda' && <Beranda user={user} openMentor={(n) => { setTc(n); setNav('peserta'); }} openSaya={(id) => { setBel(id); setNav('belajar'); }} />}
+        {nav === 'belajar' && bel && <Belajar key={bel} id={bel} back={() => setNav('beranda')} openProgres={() => { setSaya(bel); setNav('saya'); }} />}
         {nav === 'saya' && saya && <Saya id={saya} back={() => setNav('beranda')} />}
         {tc && nav === 'peserta' && <Peserta key={tc} tc={tc} canWrite={user.canWrite} />}
         {nav === 'pengguna' && user.admin && <Users me={user.email} />}
+        {nav === 'tc' && user.admin && <TcAdmin onCreated={reloadTc} />}
+        {tc && nav === 'kelompok' && user.viewAll && <Kelompok key={tc} tc={tc} />}
         {tc && nav === 'rekap' && user.viewAll && <Rekap tc={tc} setTc={setTc} setNav={setNav} />}
       </main>
     </div>
@@ -95,7 +102,7 @@ function Beranda({ user, openMentor, openSaya }) {
   const first = (user.name || '').split(/\s+/)[0];
   return (
     <>
-      <div className="head"><div><h1>Selamat datang{first ? ', ' + first : ''}</h1><div className="subt">Pilih program untuk melihat detailnya.</div></div></div>
+      <div className="head"><div><h1>Selamat datang{first ? ', ' + first : ''}</h1><div className="subt">Pilih program untuk melihat detailnya. Sebagai peserta, buka program Anda untuk mulai belajar.</div></div></div>
       {err && <div className="err" role="alert">{err}</div>}
       {!d && !err && <p className="note">Memuat…</p>}
       {d && (
@@ -142,6 +149,7 @@ function Saya({ id, back }) {
       {!d && !err && <p className="note">Memuat…</p>}
       {d && (
         <div className="card">
+          <TimPanel tim={d.tim} kelompok={d.kelompok} judul="Mentor dan tim Anda" />
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><Chip s={d.status} />{d.mentor && <span className="note">Mentor: {d.mentor}</span>}</div>
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))' }}>
             <div className="stat" style={{ background: 'var(--bg)' }}><b>{d.nonton}</b>Video selesai</div>
@@ -253,6 +261,8 @@ function Detail({ p, reload, canWrite }) {
           </div>
           {p.hp && <button className="btn wa" onClick={() => setWaOpen(!waOpen)} aria-expanded={waOpen}>Kirim WhatsApp</button>}
         </div>
+
+        <TimPanel tim={p.tim} kelompok={p.kelompok} judul="Mentor dan tim" />
 
         {waOpen && (
           <div className="bab">
@@ -437,6 +447,8 @@ function Users({ me }) {
   const [msg, setMsg] = useState('');
   const [form, setForm] = useState({ email: '', nama: '', level: 'Mentor' });
   const [qs, setQs] = useState('');
+  const [sel, setSel] = useState(null);
+  const [fl, setFl] = useState({ ku: '', usia: '', jk: '', level: '', spes: '', kategori: '', aktif: '' });
   const load = useCallback(() => api('/api/users').then((j) => setUsers(j.users)).catch((e) => setErr(e.message)), []);
   useEffect(() => { load(); }, [load]);
 
@@ -450,8 +462,25 @@ function Users({ me }) {
     try { await api('/api/users/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); setMsg('Tersimpan'); load(); }
     catch (x) { setErr(x.message); }
   }
-  const rows = (users || []).filter((u) => !qs || (u.email + ' ' + u.nama).toLowerCase().includes(qs.toLowerCase()));
+  const all = users || [];
+  const opt = (fn) => [...new Set(all.map(fn).flat().filter(Boolean))].sort();
+  const opts = { ku: opt((u) => u.profil?.ku), usia: opt((u) => u.profil?.kelUsia), jk: opt((u) => u.profil?.jk), spes: opt((u) => u.profil?.spes), kategori: opt((u) => u.profil?.kategori) };
+  const rows = all.filter((u) => {
+    const p = u.profil;
+    if (qs && !(u.email + ' ' + u.nama + ' ' + (p?.nama || '')).toLowerCase().includes(qs.toLowerCase())) return false;
+    if (fl.level && u.level !== fl.level) return false;
+    if (fl.aktif && (fl.aktif === 'ya') !== u.aktif) return false;
+    if (fl.ku && p?.ku !== fl.ku) return false;
+    if (fl.usia && p?.kelUsia !== fl.usia) return false;
+    if (fl.jk && p?.jk !== fl.jk) return false;
+    if (fl.kategori && p?.kategori !== fl.kategori) return false;
+    if (fl.spes && !(p?.spes || []).includes(fl.spes)) return false;
+    return true;
+  });
+  const cur = all.find((u) => u.id === sel);
   const desc = { Superadmin: 'Semua fitur dan kelola pengguna', Mentor: 'Peserta miliknya saja', Pengamat: 'Lihat rekap dan unduh Excel' };
+  const F = ({ k, label, list }) => <select aria-label={label} value={fl[k]} onChange={(e) => setFl({ ...fl, [k]: e.target.value })}><option value="">{label}</option>{list.map((x) => <option key={x}>{x}</option>)}</select>;
+  const aktifFilter = Object.values(fl).some(Boolean);
 
   return (
     <>
@@ -468,15 +497,46 @@ function Users({ me }) {
         </div>
         <div className="note">{desc[form.level]}. Mentor tanpa baris di sini tetap bisa masuk lewat Email Mentor di Schole, dengan level Mentor.</div>
       </form>
+
+      {cur && (
+        <section className="card profil" aria-label="Profil pengguna">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 0 }}>
+              <span className="pav lg">{initials(cur.profil?.nama || cur.nama || cur.email)}</span>
+              <div style={{ minWidth: 0 }}><div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-.02em' }}>{cur.profil?.nama || cur.nama || cur.email}</div><div className="note" style={{ wordBreak: 'break-all' }}>{cur.email} · {cur.level}{cur.aktif ? '' : ' · nonaktif'}</div></div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {cur.profil?.wa && <a className="btn wa" href={waLink(cur.profil.wa)} target="_blank" rel="noreferrer">WhatsApp</a>}
+              <button className="btn" onClick={() => setSel(null)}>Tutup</button>
+            </div>
+          </div>
+          {!cur.profil ? <p className="note" style={{ margin: 0 }}>Email ini belum ditemukan di data BPN (M-Person), jadi profil belum tersedia. Pastikan emailnya sama dengan yang tercatat di BPN.</p> : (
+            <dl className="pf">
+              {[['Nama panggilan', cur.profil.panggilan], ['Keuskupan', cur.profil.ku], ['Jenis kelamin', cur.profil.jk], ['Usia', cur.profil.usia != null ? cur.profil.usia + ' th' : ''], ['Kelompok usia', cur.profil.kelUsia], ['Kategori', cur.profil.kategori],
+                ['Spesialisasi pengajar SHDR', (cur.profil.spes || []).join(', ')], ['Sakramen baptis', cur.profil.baptis], ['Sakramen krisma', cur.profil.krisma], ['Alamat surat', cur.profil.alamat]].map(([k, v]) => v ? <div key={k}><dt>{k}</dt><dd>{v}</dd></div> : null)}
+            </dl>
+          )}
+          {cur.profil && <span className="note">Data profil dibaca dari BPN dan tidak bisa diubah di sini.</span>}
+        </section>
+      )}
+
       <div className="card">
-        <input type="text" aria-label="Cari pengguna" placeholder="Cari email atau nama" value={qs} onChange={(e) => setQs(e.target.value)} style={{ borderRadius: 999, background: 'var(--bg)', maxWidth: 320 }} />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <input type="text" aria-label="Cari pengguna" placeholder="Cari email atau nama" value={qs} onChange={(e) => setQs(e.target.value)} style={{ borderRadius: 999, background: 'var(--bg)', flex: '1 1 220px', maxWidth: 320 }} />
+          <F k="ku" label="Semua keuskupan" list={opts.ku} /><F k="usia" label="Semua kelompok usia" list={opts.usia} /><F k="jk" label="Jenis kelamin" list={opts.jk} />
+          <F k="spes" label="Spesialisasi bab" list={opts.spes} /><F k="kategori" label="Kategori" list={opts.kategori} /><F k="level" label="Semua level" list={LEVEL} />
+          <select aria-label="Status aktif" value={fl.aktif} onChange={(e) => setFl({ ...fl, aktif: e.target.value })}><option value="">Aktif dan nonaktif</option><option value="ya">Aktif</option><option value="tidak">Nonaktif</option></select>
+          {aktifFilter && <button className="btn" onClick={() => setFl({ ku: '', usia: '', jk: '', level: '', spes: '', kategori: '', aktif: '' })}>Hapus filter</button>}
+        </div>
+        <span className="note">{users ? rows.length + ' dari ' + all.length + ' pengguna' : ''} · Klik nama untuk melihat profil dari BPN.</span>
         {!users && !err && <p className="note">Memuat…</p>}
-        <div className="tbl"><div className="tin" role="table" aria-label="Daftar pengguna" style={{ minWidth: 640 }}>
-          <div className="tr th" role="row" style={{ gridTemplateColumns: 'minmax(220px,2fr) minmax(140px,1.4fr) 150px 90px' }}><span>Email</span><span>Nama</span><span>Level</span><span>Aktif</span></div>
+        <div className="tbl"><div className="tin" role="table" aria-label="Daftar pengguna" style={{ minWidth: 760 }}>
+          <div className="tr th" role="row" style={{ gridTemplateColumns: 'minmax(160px,1.6fr) minmax(200px,2fr) minmax(110px,1fr) 150px 90px' }}><span>Nama</span><span>Email</span><span>Keuskupan</span><span>Level</span><span>Aktif</span></div>
           {rows.map((u) => (
-            <div className="tr" role="row" key={u.id} style={{ gridTemplateColumns: 'minmax(220px,2fr) minmax(140px,1.4fr) 150px 90px', opacity: u.aktif ? 1 : .55 }}>
-              <b style={{ wordBreak: 'break-all' }}>{u.email}{u.email === me ? ' (Anda)' : ''}</b>
-              <span>{u.nama}</span>
+            <div className="tr" role="row" key={u.id} style={{ gridTemplateColumns: 'minmax(160px,1.6fr) minmax(200px,2fr) minmax(110px,1fr) 150px 90px', opacity: u.aktif ? 1 : .55 }}>
+              <button className="lnk" onClick={() => { setSel(u.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{u.profil?.nama || u.nama || u.email}</button>
+              <span style={{ wordBreak: 'break-all' }}>{u.email}{u.email === me ? ' (Anda)' : ''}</span>
+              <span>{u.profil?.ku || <span className="note">-</span>}</span>
               <select aria-label={'Level ' + u.email} value={u.level} onChange={(e) => patch(u.id, { level: e.target.value })}>{LEVEL.map((l) => <option key={l}>{l}</option>)}</select>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={u.aktif} onChange={(e) => patch(u.id, { aktif: e.target.checked })} style={{ width: 22, height: 22 }} aria-label={'Aktif ' + u.email} /></label>
             </div>
@@ -484,6 +544,291 @@ function Users({ me }) {
         </div></div>
         {users && rows.length === 0 && <p className="note">Tidak ada pengguna yang cocok.</p>}
       </div>
+    </>
+  );
+}
+
+/* ---------------- TIM / KELOMPOK ---------------- */
+const waLink = (hp, text) => 'https://wa.me/' + hp + (text ? '?text=' + encodeURIComponent(text) : '');
+const PERAN_CLS = { Mentor: 'sa', 'Co-Mentor': 'sl', 'Pendamping Teknis': 'sx', 'Pengolah Data': 'sx' };
+function TimPanel({ tim, kelompok, judul }) {
+  if (!tim || tim.length === 0) return null;
+  return (
+    <div className="timp">
+      <span className="lbl">{judul || 'Tim pendamping'}{kelompok ? ' · ' + kelompok : ''}</span>
+      <div className="timl">
+        {tim.map((o, i) => (
+          <div key={i} className="timr">
+            <span className={'chip ' + (PERAN_CLS[o.peran] || 'sx')}>{o.peran}</span>
+            <span className="tn"><b>{o.nama}</b>{o.kota ? <span className="note"> · {o.kota}</span> : null}</span>
+            {o.hp ? <a className="btn wa sm" href={waLink(o.hp)} target="_blank" rel="noreferrer" aria-label={'WhatsApp ' + o.nama}>WhatsApp</a> : <span className="note">Tanpa nomor</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Kelompok({ tc }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState('');
+  const [qs, setQs] = useState('');
+  useEffect(() => { setD(null); api('/api/kelompok?tc=' + encodeURIComponent(tc)).then((j) => setD(j.kelompok)).catch((e) => setErr(e.message)); }, [tc]);
+  const m = qs.toLowerCase();
+  const shown = (d || []).filter((g) => !m || (g.kelompok + ' ' + g.tim.map((o) => o.nama).join(' ') + ' ' + g.peserta.map((x) => x.nama + ' ' + x.ku).join(' ')).toLowerCase().includes(m));
+  return (
+    <>
+      <div className="head"><div><h1>Kelompok</h1><div className="subt">{tc}{d ? ' · ' + d.length + ' kelompok · ' + d.reduce((a, g) => a + g.peserta.length, 0) + ' peserta' : ''}</div></div></div>
+      {err && <div className="err" role="alert">{err}</div>}
+      {!d && !err && <p className="note">Memuat…</p>}
+      {d && <input type="text" aria-label="Cari kelompok, mentor, atau peserta" placeholder="Cari kelompok, mentor, atau peserta" value={qs} onChange={(e) => setQs(e.target.value)} style={{ borderRadius: 999, maxWidth: 420 }} />}
+      {d && shown.length === 0 && <p className="note">Tidak ada yang cocok.</p>}
+      {shown.map((g) => (
+        <section key={g.kelompok} className="card kgrp" aria-label={g.kelompok}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
+            <h2 style={{ margin: 0 }}>{g.kelompok}</h2><span className="note">{g.peserta.length} peserta</span>
+          </div>
+          {g.tim.length ? <TimPanel tim={g.tim} /> : <span className="note">Belum ada mentor di kelompok ini.</span>}
+          <div className="kpes">
+            <span className="lbl">Peserta</span>
+            {g.peserta.map((x) => (
+              <div key={x.id} className="timr">
+                <Chip s={x.status} />
+                <span className="tn"><b>{x.nama}</b><span className="note"> · {x.ku || 'Tanpa keuskupan'}</span></span>
+                {x.hp ? <a className="btn wa sm" href={waLink(x.hp)} target="_blank" rel="noreferrer" aria-label={'WhatsApp ' + x.nama}>WhatsApp</a> : <span className="note">Tanpa nomor</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </>
+  );
+}
+
+/* ---------------- TC BARU & PENGAJAR ---------------- */
+function TcAdmin({ onCreated }) {
+  const [modul, setModul] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+  const [mid, setMid] = useState('');
+  const [peng, setPeng] = useState(null);
+  const [fku, setFku] = useState('');
+  const [form, setForm] = useState({ nama: '', mulai: '', selesai: '', salinDari: '' });
+  useEffect(() => {
+    api('/api/modul').then((j) => setModul(j.modul)).catch((e) => setErr(e.message));
+    api('/api/tcadmin').then((j) => setEvents(j.events)).catch((e) => setErr(e.message));
+  }, []);
+  const mod = (modul || []).find((x) => x.id === mid);
+  function pick(id) {
+    setMid(id); setPeng(null); setFku(''); setMsg('');
+    const mm = (modul || []).find((x) => x.id === id);
+    if (!mm) return;
+    const ref = events.find((e) => e.materi > 0 && e.nama.toUpperCase().includes(mm.nama.toUpperCase().split(/[\s(]/)[0])) || events.find((e) => e.materi > 0);
+    setForm((f) => ({ ...f, nama: 'TC ' + mm.nama + ' ' + new Date().getFullYear(), salinDari: ref?.id || '' }));
+    api('/api/modul/' + id).then(setPeng).catch((e) => setErr(e.message));
+  }
+  async function create(e) {
+    e.preventDefault(); setErr(''); setMsg('');
+    try {
+      const r = await api('/api/tcadmin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      setMsg('TC dibuat' + (r.materi ? ' dengan materi dari TC acuan.' : ' tanpa materi (belum ada TC acuan).'));
+      setForm({ nama: '', mulai: '', selesai: '', salinDari: form.salinDari });
+      api('/api/tcadmin').then((j) => setEvents(j.events)).catch(() => {});
+      onCreated && onCreated();
+    } catch (x) { setErr(x.message); }
+  }
+  const kus = [...new Set((peng?.pengajar || []).map((x) => x.ku).filter(Boolean))].sort();
+  const pl = (peng?.pengajar || []).filter((x) => !fku || x.ku === fku);
+  const grouped = {};
+  (peng?.pengajar || []).forEach((x) => (x.spes || []).forEach((s) => { grouped[s] = (grouped[s] || 0) + 1; }));
+  return (
+    <>
+      <div className="head"><div><h1>TC baru</h1><div className="subt">Buat program TC dan lihat pengajar yang terdata di BPN</div></div></div>
+      {err && <div className="err" role="alert">{err}</div>}
+      {msg && <div className="note" role="status" style={{ color: 'var(--green)', fontWeight: 600 }}>{msg}</div>}
+      <form className="card" onSubmit={create}>
+        <div className="lbl">1. Pilih modul (dari BPN)</div>
+        <select aria-label="Modul berjenjang" value={mid} onChange={(e) => pick(e.target.value)}>
+          <option value="">{modul ? 'Pilih modul…' : 'Memuat…'}</option>
+          {(modul || []).map((m) => <option key={m.id} value={m.id}>{m.nama}{m.tahap ? ' · ' + m.tahap : ''} · {m.jumlah} pengajar</option>)}
+        </select>
+
+        {mod && (
+          <div className="pgj">
+            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
+              <b style={{ fontSize: 28 }}>{peng ? peng.jumlah : mod.jumlah}</b><span>pengajar terdata untuk {mod.nama}</span>
+            </div>
+            {!peng && <span className="note">Memuat pengajar…</span>}
+            {peng && (
+              <>
+                {Object.keys(grouped).length > 0 && <div className="legend">{Object.entries(grouped).sort().map(([s, c]) => <span key={s}><i style={{ background: '#0A64D6' }} />{s} · {c}</span>)}</div>}
+                <select aria-label="Saring keuskupan" value={fku} onChange={(e) => setFku(e.target.value)} style={{ maxWidth: 280 }}>
+                  <option value="">Semua keuskupan ({kus.length})</option>
+                  {kus.map((k) => <option key={k}>{k}</option>)}
+                </select>
+                <div className="tbl"><div className="tin" role="table" aria-label="Pengajar" style={{ minWidth: 620 }}>
+                  <div className="tr th" role="row" style={{ gridTemplateColumns: 'minmax(180px,2fr) minmax(120px,1.2fr) minmax(160px,2fr) 110px' }}><span>Nama</span><span>Keuskupan</span><span>Spesialisasi bab</span><span>WA</span></div>
+                  {pl.map((x) => (
+                    <div className="tr" role="row" key={x.id} style={{ gridTemplateColumns: 'minmax(180px,2fr) minmax(120px,1.2fr) minmax(160px,2fr) 110px' }}>
+                      <b>{x.nama}</b><span>{x.ku || '-'}</span><span>{x.spes.length ? x.spes.join(', ') : <span className="note">Belum diisi</span>}</span>
+                      {x.wa ? <a className="btn wa sm" href={waLink(x.wa)} target="_blank" rel="noreferrer">WhatsApp</a> : <span className="note">-</span>}
+                    </div>
+                  ))}
+                </div></div>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="lbl" style={{ marginTop: 8 }}>2. Nama dan periode TC</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <input type="text" aria-label="Nama TC" placeholder="Nama TC" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} style={{ flex: '2 1 260px' }} required />
+          <label className="dl">Mulai<input type="date" value={form.mulai} onChange={(e) => setForm({ ...form, mulai: e.target.value })} required /></label>
+          <label className="dl">Selesai<input type="date" value={form.selesai} min={form.mulai} onChange={(e) => setForm({ ...form, selesai: e.target.value })} required /></label>
+        </div>
+        <div className="lbl" style={{ marginTop: 8 }}>3. Salin materi dari TC</div>
+        <select aria-label="Salin materi dari TC" value={form.salinDari} onChange={(e) => setForm({ ...form, salinDari: e.target.value })}>
+          <option value="">Tanpa materi</option>
+          {events.map((e) => <option key={e.id} value={e.id}>{e.nama}{e.materi ? '' : ' (tanpa materi)'}</option>)}
+        </select>
+        <button className="btn primary" type="submit" style={{ alignSelf: 'flex-start' }}>Buat TC</button>
+        <span className="note">Peserta dan kelompok ditambahkan lewat Airtable atau pendaftaran seperti biasa; TC baru langsung muncul di daftar program.</span>
+      </form>
+    </>
+  );
+}
+
+/* ---------------- BELAJAR (LMS PESERTA) ---------------- */
+let ytPromise = null;
+function loadYT() {
+  if (typeof window === 'undefined') return Promise.reject();
+  if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+  if (!ytPromise) ytPromise = new Promise((res) => {
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { prev && prev(); res(window.YT); };
+    const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s);
+  });
+  return ytPromise;
+}
+const fmt = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+// Pemutar terlindungi: tanpa kontrol bawaan, lapisan penghalang klik, tidak bisa melompat maju.
+function Player({ vid, review, onEnough }) {
+  const box = useState(() => 'yt' + Math.random().toString(36).slice(2))[0];
+  const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [pos, setPos] = useState(0);
+  const [dur, setDur] = useState(0);
+  const pl = useCallback(() => (typeof window !== 'undefined' ? window['__pl_' + box] : null), [box]);
+  useEffect(() => {
+    let dead = false; let timer; let max = 0; let fired = false;
+    loadYT().then((YT) => {
+      if (dead) return;
+      const p = new YT.Player(box, {
+        videoId: vid, host: 'https://www.youtube-nocookie.com',
+        playerVars: { controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0, iv_load_policy: 3, playsinline: 1, origin: window.location.origin },
+        events: {
+          onReady: () => { window['__pl_' + box] = p; setReady(true); setDur(p.getDuration()); },
+          onStateChange: (e) => { setPlaying(e.data === 1); if (e.data === 0 && !fired) { fired = true; onEnough(); } }
+        }
+      });
+      timer = setInterval(() => {
+        try {
+          const t = p.getCurrentTime(); const d = p.getDuration(); if (!d) return;
+          setPos(t); setDur(d);
+          if (!review) { if (t > max + 4) p.seekTo(max, true); else max = Math.max(max, t); }
+          if (!fired && d && t / d >= 0.9) { fired = true; onEnough(); }
+        } catch (e) { /* belum siap */ }
+      }, 500);
+    }).catch(() => {});
+    return () => { dead = true; clearInterval(timer); try { const p = window['__pl_' + box]; p && p.destroy(); } catch (e) { /* abaikan */ } window['__pl_' + box] = null; };
+  }, [vid, box, review, onEnough]);
+  const toggle = () => { const p = pl(); if (!p) return; playing ? p.pauseVideo() : p.playVideo(); };
+  return (
+    <div className="player" onContextMenu={(e) => e.preventDefault()}>
+      <div className="vwrap"><div id={box} /><div className="vshield" onClick={toggle} aria-hidden="true" /></div>
+      <div className="vctl">
+        <button className="btn" onClick={toggle} disabled={!ready} aria-label={playing ? 'Jeda' : 'Putar'}>{playing ? 'Jeda' : 'Putar'}</button>
+        <div className="vbar" aria-hidden="true"><i style={{ width: (dur ? Math.min(100, (pos / dur) * 100) : 0) + '%' }} /></div>
+        <span className="note" style={{ minWidth: 84, textAlign: 'right' }}>{fmt(pos)} / {fmt(dur)}</span>
+      </div>
+    </div>
+  );
+}
+
+function Belajar({ id, back, openProgres }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+  const [selId, setSelId] = useState(null);
+  const [vid, setVid] = useState('');
+  const [enough, setEnough] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback((pick) => api('/api/lms/' + id).then((j) => {
+    setD(j);
+    setSelId((s) => pick || s || (j.items.find((x) => x.state === 'current') || j.items[j.items.length - 1])?.id || null);
+  }).catch((e) => setErr(e.message)), [id]);
+  useEffect(() => { load(); }, [load]);
+  const it = d?.items.find((x) => x.id === selId);
+  useEffect(() => {
+    setVid(''); setEnough(false);
+    if (!selId || !it || it.state === 'locked') return;
+    let dead = false;
+    api('/api/lms/' + id + '/video?p=' + encodeURIComponent(selId)).then((j) => { if (!dead) setVid(j.vid); }).catch((e) => setErr(e.message));
+    return () => { dead = true; };
+  }, [selId, id, it?.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onEnough = useCallback(() => setEnough(true), []);
+  const nDone = d ? d.items.filter((x) => x.state === 'done').length : 0;
+
+  async function finish() {
+    setBusy(true); setErr(''); setMsg('');
+    try {
+      await api('/api/lms/' + id + '/selesai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: selId }) });
+      const idx = d.items.findIndex((x) => x.id === selId);
+      const next = d.items[idx + 1];
+      setMsg(next ? 'Tersimpan. Video berikutnya sudah terbuka.' : 'Selamat, semua video sudah selesai ditonton!');
+      await load(next ? next.id : selId);
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  }
+  return (
+    <>
+      <div className="head"><div><h1>Belajar</h1><div className="subt">{d?.tc}{d ? ' · ' + nDone + ' dari ' + d.items.length + ' video selesai' : ''}</div></div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><button className="btn" onClick={openProgres}>Penilaian mentor</button><button className="btn" onClick={back}>Kembali</button></div></div>
+      {err && <div className="err" role="alert">{err}</div>}
+      {!d && !err && <p className="note">Memuat…</p>}
+      {d && d.items.length === 0 && <div className="card"><h2 style={{ margin: 0 }}>Belum ada video</h2><p className="note" style={{ margin: 0 }}>Materi untuk program ini belum tersedia.</p></div>}
+      {d && d.items.length > 0 && (
+        <>
+          <div className="pbar" aria-hidden="true" style={{ gridTemplateColumns: 'repeat(' + d.items.length + ',1fr)' }}>{d.items.map((x) => <span key={x.id} className={x.state === 'done' ? 'ok' : ''} />)}</div>
+          <div className="lms">
+            <ol className="steps" aria-label="Perjalanan belajar">
+              {d.items.map((x) => (
+                <li key={x.id}>
+                  <button className={'step ' + x.state + (x.id === selId ? ' on' : '')} disabled={x.state === 'locked'} onClick={() => { setSelId(x.id); setMsg(''); }} aria-current={x.id === selId ? 'step' : undefined}>
+                    <span className="sn">{x.state === 'done' ? '✓' : x.state === 'locked' ? '🔒' : x.no}</span>
+                    <span className="st"><b>{x.judul}</b><span className="note">{x.state === 'done' ? 'Selesai' : x.state === 'current' ? 'Sedang giliran' : 'Terkunci'}</span></span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <section className="card lmsp" aria-label="Pemutar video">
+              {it && <h2 style={{ margin: 0 }}>{it.judul}</h2>}
+              {it && vid && <Player key={vid + it.state} vid={vid} review={it.state === 'done'} onEnough={onEnough} />}
+              {it && !vid && it.state !== 'locked' && !err && <p className="note">Memuat video…</p>}
+              {it && it.state === 'current' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button className="btn primary" disabled={!enough || busy || d.readOnly} onClick={finish} style={{ alignSelf: 'flex-start', minHeight: 52, fontSize: 17 }}>Selesai menonton</button>
+                  <span className="note">{d.readOnly ? 'Mode lihat sebagai: tidak bisa menyelesaikan video.' : enough ? 'Tekan tombol untuk membuka video berikutnya.' : 'Tombol aktif setelah video hampir selesai ditonton. Video tidak bisa dipercepat ke depan.'}</span>
+                </div>
+              )}
+              {it && it.state === 'done' && <span className="note">Video ini sudah Anda selesaikan. Boleh ditonton ulang.</span>}
+              {msg && <span className="note" role="status" style={{ color: 'var(--green)', fontWeight: 600 }}>{msg}</span>}
+            </section>
+          </div>
+        </>
+      )}
     </>
   );
 }

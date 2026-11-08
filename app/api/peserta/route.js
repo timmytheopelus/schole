@@ -1,6 +1,7 @@
 import { currentUser } from '@/lib/auth';
 import { listHeaders, listDetails, babIn, sel } from '@/lib/queries';
 import { H, D, BAB } from '@/lib/config';
+import { teamOf, kelompokOf } from '@/lib/team';
 
 export async function GET(req) {
   const u = await currentUser();
@@ -24,7 +25,7 @@ export async function GET(req) {
       const f = h.fields;
       return {
         id: h.id, nama: f[H.nama] || '', ku: f[H.ku] || '', mentor: f[H.mentor] || '', hp: f[H.hp] || '', usia: (f[H.usia] || [])[0] || null,
-        status: sel(f[H.status]) || 'Peserta Aktif', dinilai: f[H.dinilai] || 0, cekLulus: f[H.cekLulus] || 'OK', keterangan: f[H.keterangan] || '',
+        kelompok: kelompokOf(f), tim: teamOf(f), status: sel(f[H.status]) || 'Peserta Aktif', dinilai: f[H.dinilai] || 0, cekLulus: f[H.cekLulus] || 'OK', keterangan: f[H.keterangan] || '',
         bab: BAB.map((b) => ({ bab: b, ...(byHead[h.id]?.[b] || { id: null, izin: null, catatan: '', tugas: false }) }))
       };
     }).sort((a, b) => a.nama.localeCompare(b.nama));
