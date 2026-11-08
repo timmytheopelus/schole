@@ -1,5 +1,13 @@
 # Schole Portal
 
+## Halaman
+- `/` landing page publik (Masuk dan Daftar mengarah ke halaman di bawah).
+- `/login` masuk dengan Google atau email dan password. `/lupa-password` meminta tautan reset lewat email, `/reset-password` membuat password baru.
+- `/daftar` sign up: biodata lengkap ditulis ke master data umat BPN (tabel **M-Person**), termasuk keuskupan, paroki, kota, komunitas (M-PDPKK). Paroki dan komunitas yang belum ada bisa ditambah baru dari form.
+- `/portal` aplikasi mentor dan superadmin (dulunya di `/`).
+
+Akun hasil sign up dibuat **tidak aktif** di tabel Akses Portal Schole. Superadmin menyetujuinya dengan mencentang **Aktif** (menu Pengguna atau langsung di Airtable).
+
 Aplikasi mentor dan superadmin untuk Training Course. Data dan aturan ada di Airtable (base **Schole**); aplikasi hanya membaca dan menulis lewat API.
 
 ## Fitur
@@ -19,7 +27,17 @@ Karena rollup dan formula dihitung Airtable, data yang diinput manual di Airtabl
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: OAuth client Google. Redirect URI: `https://<domain>/api/auth/callback/google`.
    - `NEXTAUTH_SECRET` (acak, mis. `openssl rand -base64 32`), `NEXTAUTH_URL` (URL produksi).
    - `SUPERADMIN_EMAILS`: email superadmin, pisahkan dengan koma.
+   - Login email dan reset password: `RESEND_API_KEY` dan `MAIL_FROM` (mis. `Schole <no-reply@domainanda.org>`, domain harus terverifikasi di Resend). Tanpa ini email reset tidak terkirim.
 3. Deploy.
+
+## Kolom Airtable untuk login email dan sign up
+Tabel **Akses Portal Schole** (base BPN PKKI) perlu kolom berikut (nama harus persis):
+- `Password Hash` (Single line text)
+- `Reset Token Hash` (Single line text)
+- `Reset Berlaku Sampai` (Number, 0 desimal)
+- `ID M-Person (BPN)` (Single line text)
+
+Password disimpan sebagai hash scrypt, token reset disimpan sebagai hash dan berlaku 1 jam. Token Airtable harus boleh menulis ke tabel M-Person, M-PDPKK, M-Paroki, dan Akses Portal Schole di base BPN PKKI.
 
 Mentor dikenali dari email Google yang sama dengan **Email Mentor** di Airtable.
 

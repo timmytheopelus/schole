@@ -1,33 +1,12 @@
-import { redirect } from 'next/navigation';
-import { currentUser } from '@/lib/auth';
-import App from '@/components/App';
+import './landing.css';
+import { LANDING_HTML } from '@/components/landing-html';
 
-export const dynamic = 'force-dynamic';
+export const metadata = {
+  title: 'Schole · Learning Management Platform PKK',
+  description: 'Schole membantu pengurus dan pengajar PKK menyusun kelas, membagikan materi, dan memantau perkembangan peserta. Dibangun oleh BPK PKK Keuskupan Bandung bersama BPN PKK Indonesia.'
+};
 
-const REQUIRED = ['AIRTABLE_TOKEN', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'NEXTAUTH_SECRET', 'NEXTAUTH_URL', 'SUPERADMIN_EMAILS'];
-
-export default async function Home() {
-  const missing = REQUIRED.filter((k) => !process.env[k]);
-  if (missing.length) {
-    return (
-      <main className="login">
-        <div className="logo">σ</div>
-        <h1>Hampir siap</h1>
-        <p>Variabel konfigurasi berikut belum diisi di Vercel (Settings → Environment Variables), lalu Redeploy:</p>
-        <p style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--ink)', lineHeight: 1.8 }}>{missing.join(' · ')}</p>
-      </main>
-    );
-  }
-  const u = await currentUser();
-  if (!u) redirect('/login');
-  if (u.blocked) {
-    return (
-      <main className="login">
-        <div className="logo">σ</div>
-        <h1>Akses ditolak</h1>
-        <p>Akun {u.email} dinonaktifkan. Hubungi superadmin Schole.</p>
-      </main>
-    );
-  }
-  return <App user={u} />;
+// Halaman utama (publik). Konten statis milik sendiri; tombol Masuk dan Daftar menuju /login dan /daftar.
+export default function Landing() {
+  return <div className="landing" dangerouslySetInnerHTML={{ __html: LANDING_HTML }} />;
 }
