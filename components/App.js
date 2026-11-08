@@ -192,14 +192,16 @@ function Peserta({ tc, canWrite }) {
           <div className="split">
             <section className="plist" aria-label="Daftar peserta">
               <div className="sr"><input type="text" aria-label="Cari peserta" placeholder="Cari nama atau keuskupan" value={qs} onChange={(e) => setQs(e.target.value)} /></div>
+              <div className="list">
               {shown.map((x) => (
-                <button key={x.id} className={'prow ' + ST[x.status][1] + (x.id === sel ? ' on' : '')} aria-pressed={x.id === sel} onClick={() => setSel(x.id)}>
+                <button key={x.id} className={'prow ' + ST[x.status][1] + (x.id === sel ? ' on' : '')} aria-pressed={x.id === sel} onClick={() => { setSel(x.id); if (typeof window !== 'undefined' && window.innerWidth <= 720) setTimeout(() => document.getElementById('pdetail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); }}>
                   <span className={'pav ' + ST[x.status][1]}>{initials(x.nama)}</span>
                   <span className="nm"><b>{x.nama}</b><span>{x.ku || 'Tanpa keuskupan'} · {x.bab.filter((b) => b.izin).length}/8 bab dinilai</span></span>
                   <Chip s={x.status} />
                 </button>
               ))}
               {shown.length === 0 && <p className="note" style={{ padding: 20, textAlign: 'center' }}>Tidak ada peserta yang cocok.</p>}
+              </div>
             </section>
             {p && <Detail key={p.id} p={p} reload={load} canWrite={canWrite} />}
           </div>
@@ -227,14 +229,18 @@ function Detail({ p, reload, canWrite }) {
   const cls = ST[p.status][1];
   const locked = p.dinilai === 0 && p.status !== 'Lulus';
 
-  async function setStatus(status) {
+  const [undo, setUndo] = useState(null);
+  async function setStatus(status, isUndo) {
     setMsg('');
-    try { await api('/api/peserta/' + p.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); setMsg('Status disimpan'); reload(); }
-    catch (e) { setMsg(e.message); }
+    const prev = p.status;
+    try {
+      await api('/api/peserta/' + p.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+      setUndo(isUndo ? null : prev); setMsg(isUndo ? 'Perubahan dibatalkan' : 'Status langsung tersimpan: ' + ST[status][0]); reload();
+    } catch (e) { setMsg(e.message); }
   }
 
   return (
-    <section className={'pdetail ' + cls} aria-label="Detail peserta">
+    <section id="pdetail" className={'pdetail ' + cls} aria-label="Detail peserta" style={{ scrollMarginTop: 12 }}>
       <div className="topbar" />
       <div className="body">
         <div className="head" style={{ alignItems: 'center' }}>
@@ -273,7 +279,7 @@ function Detail({ p, reload, canWrite }) {
             })}
           </div>
           {locked && <span className="note">Lulus terbuka setelah minimal satu bab dinilai.</span>}
-          {msg && <span className="note" role="status">{msg}</span>}
+          {msg && <span className="note" role="status" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>{msg}{undo && <button className="btn" style={{ minHeight: 36, padding: '6px 16px' }} onClick={() => setStatus(undo, true)}>Urungkan</button>}</span>}
           {p.cekLulus !== 'OK' && <div className="err">{p.cekLulus}</div>}
         </div>
 
@@ -316,7 +322,7 @@ function BabTile({ b, reload, canWrite }) {
         <button className={'ibtn dp' + (izin === IZIN[1] ? ' on' : '')} aria-pressed={izin === IZIN[1]} disabled={!canWrite} onClick={() => setIzin(izin === IZIN[1] ? null : IZIN[1])}>{IZIN_LABEL[1]}</button>
       </div>
       {izin && <textarea readOnly={!canWrite} aria-label={'Catatan ' + babLabel(b.bab)} placeholder={izin === IZIN[1] ? 'Catatan wajib diisi' : 'Catatan (opsional)'} value={note} onChange={(e) => setNote(e.target.value)} />}
-      {dirty && <button className="btn primary" disabled={needNote} onClick={save}>Simpan</button>}
+      {dirty && <div style={{ display: 'flex', gap: 8 }}><button className="btn primary" disabled={needNote} onClick={save}>Simpan</button><button className="btn" onClick={() => { setIzin(b.izin); setNote(b.catatan); setMsg(''); }}>Batal</button></div>}
       {needNote && <span className="note" style={{ color: '#A35200', fontWeight: 600 }}>Isi catatan untuk menyimpan.</span>}
       {msg && <span className="note" role="status">{msg}</span>}
     </div>

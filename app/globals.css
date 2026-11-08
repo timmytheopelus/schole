@@ -80,10 +80,30 @@ h1{margin:0;font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1.0
 .babgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .bab{background:var(--bg);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
 @media (max-width:720px){
- aside{flex:1 1 100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);padding:16px 16px 12px;gap:14px}
- aside nav{flex-direction:row;overflow-x:auto}.nav{width:auto;flex:0 0 auto;padding:10px 16px}
- aside .me{margin-top:0}
- main.main{flex:1 1 100%;padding:24px 16px 56px;gap:22px}
- h1{font-size:30px}
+ body{font-size:16px}
+ aside{flex:1 1 100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);padding:12px 16px;gap:10px}
+ .brand{padding:0}
+ aside .field{padding:0}
+ aside nav{position:fixed;left:0;right:0;bottom:0;z-index:20;flex-direction:row;gap:0;background:rgba(251,251,253,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+ .nav{flex:1 1 0;flex-direction:column;justify-content:center;gap:2px;width:auto;min-height:52px;padding:6px 4px;font-size:11px;text-align:center}
+ aside .me{margin-top:0;flex-direction:row;align-items:center;justify-content:space-between;gap:8px;padding:0}
+ aside .me .lbl{display:none}
+ aside .me .btn{min-height:36px;padding:6px 16px}
+ main.main{flex:1 1 100%;padding:20px 16px 110px;gap:18px}
+ h1{font-size:30px}.subt{font-size:15px}
+ .head{gap:12px}
  select,input[type=text]{width:100%}
+ .ftabs{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:2px 16px;scrollbar-width:none}
+ .ftab{flex:0 0 auto}
+ .plist{flex:1 1 100%;max-width:none}
+ .plist .list{max-height:340px;overflow-y:auto}
+ .pdetail{flex:1 1 100%}
+ .pdetail .body{padding:16px;gap:20px}
+ .sbtn{flex:1 1 100%}
+ .babgrid{grid-template-columns:minmax(0,1fr)}
+ .card{border-radius:18px}
+ .stat{padding:18px;border-radius:18px}.stat b{font-size:36px}
+ .seg{overflow-x:auto}
+ .seg button{white-space:nowrap}
+ .tr{padding:12px 8px}
 }
