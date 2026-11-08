@@ -1,7 +1,7 @@
 import { currentUser } from '@/lib/auth';
 import { listHeaders, listDetails, babIn, sel } from '@/lib/queries';
-import { H, D, BAB } from '@/lib/config';
-import { teamOf, kelompokOf } from '@/lib/team';
+import { H, D, babsFor } from '@/lib/config';
+import { teamOf, kelompokOf, mentorNames } from '@/lib/team';
 
 export async function GET(req) {
   const u = await currentUser();
@@ -9,7 +9,7 @@ export async function GET(req) {
   const tc = new URL(req.url).searchParams.get('tc');
   if (!tc) return Response.json({ peserta: [] });
   try {
-    const [heads, dets] = await Promise.all([listHeaders(u, tc), listDetails(u, tc, babIn())]);
+    const [heads, dets] = await Promise.all([listHeaders(u, tc), listDetails(u, tc, babIn(tc))]);
     const byHead = {};
     for (const d of dets) {
       const hid = (d.fields[D.header] || [])[0];
@@ -21,14 +21,20 @@ export async function GET(req) {
         cur[bab] = { id: d.id, izin: sel(d.fields[D.izin]) || null, catatan: d.fields[D.catatan] || '', tugas: !!d.fields[D.tugas] };
       }
     }
+    const babs = babsFor(tc, dets.map((d) => d.fields[D.bab]));
     const peserta = heads.map((h) => {
       const f = h.fields;
+      const status = sel(f[H.status]) || 'Peserta Aktif';
+      const bab = babs.map((b) => ({ bab: b, ...(byHead[h.id]?.[b] || { id: null, izin: null, catatan: '', tugas: false }) }));
+      const dinilai = bab.filter((b) => b.izin).length;
       return {
-        id: h.id, nama: f[H.nama] || '', ku: f[H.ku] || '', mentor: f[H.mentor] || '', hp: f[H.hp] || '', usia: (f[H.usia] || [])[0] || null,
-        kelompok: kelompokOf(f), tim: teamOf(f), status: sel(f[H.status]) || 'Peserta Aktif', dinilai: f[H.dinilai] || 0, cekLulus: f[H.cekLulus] || 'OK', keterangan: f[H.keterangan] || '',
-        bab: BAB.map((b) => ({ bab: b, ...(byHead[h.id]?.[b] || { id: null, izin: null, catatan: '', tugas: false }) }))
+        id: h.id, nama: f[H.nama] || '', ku: f[H.ku] || '', mentor: mentorNames(f).join(', '), hp: f[H.hp] || '', usia: (f[H.usia] || [])[0] || null,
+        kelompok: kelompokOf(f), tim: teamOf(f), status, dinilai, nonton: f[H.nonton] || 0, keterangan: String(f[H.keterangan] || '').trim(), diubahOleh: f[H.submittedBy] || '',
+        // Lulus tetapi belum ada penilaian bab di Schole = status berasal dari data historis (diimpor), bukan kesalahan
+        historis: status === 'Lulus' && dinilai === 0,
+        bab
       };
-    }).sort((a, b) => a.nama.localeCompare(b.nama));
-    return Response.json({ peserta });
+    }).sort((a, b) => (!a.nama) - (!b.nama) || a.nama.localeCompare(b.nama));
+    return Response.json({ peserta, totalBab: babs.length });
   } catch (e) { return Response.json({ error: e.message }, { status: 500 }); }
 }
