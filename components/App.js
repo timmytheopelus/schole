@@ -121,7 +121,7 @@ export default function App({ user }) {
       <main className="main">
         {user.viewingAs && (
           <div className="banner" role="status">
-            <span>Mode lihat sebagai <b>{user.name}</b>. Hanya untuk melihat: data tidak bisa diubah dari tampilan ini. Akun asli: {user.actor}.</span>
+            <span>Mode lihat sebagai <b>{user.name}</b>. Perubahan yang Anda simpan dicatat atas nama akun Anda sendiri ({user.actor}), bukan atas nama mentor.</span>
             <button className="btn" onClick={async () => { await api('/api/viewas', { method: 'DELETE' }); window.location.href = '/'; }}>Keluar dari mode lihat</button>
           </div>
         )}
@@ -456,7 +456,7 @@ function Detail({ p, total, reload, canWrite }) {
             })}
           </div>
           {locked && <span id="lulus-why" className="note">Lulus terbuka setelah minimal satu bab dinilai.</span>}
-          {!canWrite && <span className="note">Tampilan ini hanya untuk melihat; status tidak bisa diubah.</span>}
+          {!canWrite && <span className="note">Level Anda hanya bisa melihat; status tidak bisa diubah.</span>}
           {pending && (
             <div className="confirm" role="alertdialog" aria-label="Konfirmasi ubah status">
               <span>Ubah status <b>{nama}</b> dari <b>{ST[p.status][0]}</b> menjadi <b>{ST[pending][0]}</b>? Perubahan langsung tersimpan di Airtable dan dicatat atas nama Anda.</span>
