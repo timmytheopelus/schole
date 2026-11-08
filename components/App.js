@@ -115,14 +115,14 @@ export default function App({ user }) {
           {user.admin && <ViewAs />}
           <span className="lbl">Masuk sebagai</span>
           <span>{user.name} · {user.level}</span>
-          <button className="btn" onClick={() => signOut({ callbackUrl: '/login' })}>Keluar akun</button>
+          <button className="btn" onClick={() => signOut({ callbackUrl: '/' })}>Keluar akun</button>
         </div>
       </aside>
       <main className="main">
         {user.viewingAs && (
           <div className="banner" role="status">
             <span>Mode lihat sebagai <b>{user.name}</b>. Perubahan yang Anda simpan dicatat atas nama akun Anda sendiri ({user.actor}), bukan atas nama mentor.</span>
-            <button className="btn" onClick={async () => { await api('/api/viewas', { method: 'DELETE' }); window.location.href = '/'; }}>Keluar dari mode lihat</button>
+            <button className="btn" onClick={async () => { await api('/api/viewas', { method: 'DELETE' }); window.location.href = '/portal'; }}>Keluar dari mode lihat</button>
           </div>
         )}
         {err && <div className="err" role="alert">{err}</div>}
@@ -148,7 +148,7 @@ function ViewAs() {
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState('');
   useEffect(() => { api('/api/viewas').then((j) => setList(j.mentors)).catch((e) => setErr(e.message)); }, []);
-  async function go() { try { await post('/api/viewas', { email: v }); window.location.href = '/'; } catch (e) { setErr(e.message); } }
+  async function go() { try { await post('/api/viewas', { email: v }); window.location.href = '/portal'; } catch (e) { setErr(e.message); } }
   const m = qs.trim().toLowerCase();
   const matches = (list || []).filter((x) => !m || (x.nama + ' ' + x.email).toLowerCase().includes(m)).slice(0, 8);
   return (
