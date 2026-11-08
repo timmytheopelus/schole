@@ -3,7 +3,7 @@
 Aplikasi mentor dan superadmin untuk Training Course. Data dan aturan ada di Airtable (base **Schole**); aplikasi hanya membaca dan menulis lewat API.
 
 ## Fitur
-- **Mentor** (login Google): lihat peserta miliknya per program (TC), ubah status (Aktif/Lulus/Drop Out), nilai tiap bab (Boleh mengajar / Boleh mengajar, didampingi) dengan catatan, kirim WA lewat tautan wa.me.
+- **Mentor** (login Google): lihat peserta miliknya per program (TC), ubah status (Aktif/Lulus/Drop Out), nilai tiap bab (Siap mengajar / Perlu pendampingan; di Airtable tersimpan sebagai "Boleh mengajar" / "Boleh mengajar, didampingi") dengan catatan, kirim WA lewat tautan wa.me.
 - **Superadmin**: rekap per TC, per keuskupan, tabel peserta, filter keuskupan dan bab, unduh Excel.
 
 ## Perubahan Airtable (sudah dibuat)

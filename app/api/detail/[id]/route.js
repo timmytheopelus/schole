@@ -10,7 +10,7 @@ export async function PATCH(req, { params }) {
   const { izin, catatan } = await req.json();
   if (izin !== null && !IZIN.includes(izin)) return Response.json({ error: 'Izin tidak valid' }, { status: 400 });
   const note = String(catatan || '').trim();
-  if (izin === IZIN[1] && !note) return Response.json({ error: 'Catatan wajib diisi untuk "didampingi"' }, { status: 422 });
+  if (izin === IZIN[1] && !note) return Response.json({ error: 'Catatan wajib diisi untuk "Perlu pendampingan"' }, { status: 422 });
   try {
     const rec = await getOne('tblHdbfsd6vT0pxp5', params.id, [D.email]);
     const emails = String(rec.fields[D.email] || '').split(',');

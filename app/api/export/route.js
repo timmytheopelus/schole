@@ -21,7 +21,7 @@ export async function GET(req) {
     r.perKu.forEach((k) => s2.addRow([k.ku, k.total, k.Lulus, k['Peserta Aktif'], k['Drop Out']]));
     s2.columns.forEach((c, i) => (c.width = i ? 11 : 28));
     const s3 = wb.addWorksheet('Per Bab');
-    s3.addRow(['Bab', 'Selesai menonton', 'Tugas terkumpul', 'Boleh mengajar', 'Boleh, didampingi']).font = { bold: true };
+    s3.addRow(['Bab', 'Selesai menonton', 'Tugas terkumpul', 'Siap mengajar', 'Perlu pendampingan']).font = { bold: true };
     r.perBab.forEach((b) => s3.addRow([babLabel(b.bab), b.nonton, b.tugas, b.boleh, b.damping]));
     s3.columns.forEach((c, i) => (c.width = i ? 18 : 22));
     const s4 = wb.addWorksheet('Peserta');

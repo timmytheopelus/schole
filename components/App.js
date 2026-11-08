@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
-import { BAB, IZIN, STATUS, LEVEL, babLabel } from '@/lib/config';
+import { BAB, IZIN, IZIN_LABEL, STATUS, LEVEL, babLabel } from '@/lib/config';
 
-const ST = { 'Peserta Aktif': ['Aktif', '#E8F1FD', '#0058B0'], Lulus: ['Lulus', '#E3F5E8', '#1B6B30'], 'Drop Out': ['Drop Out', '#FDE8EA', '#B3001B'] };
-const Chip = ({ s }) => <span className="chip" style={{ background: ST[s]?.[1], color: ST[s]?.[2] }}>{ST[s]?.[0] || s}</span>;
+const ST = { 'Peserta Aktif': ['Aktif', 'sa'], Lulus: ['Lulus', 'sl'], 'Drop Out': ['Drop Out', 'sd'] };
+const Chip = ({ s }) => <span className={'chip ' + (ST[s]?.[1] || 'sx')}>{ST[s]?.[0] || s}</span>;
 const initials = (n) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 async function api(url, opt) {
   const r = await fetch(url, opt);
@@ -146,14 +146,14 @@ function Saya({ id, back }) {
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))' }}>
             <div className="stat" style={{ background: 'var(--bg)' }}><b>{d.nonton}</b>Video selesai</div>
             <div className="stat" style={{ background: 'var(--bg)' }}><b>{d.bab.filter((b) => b.tugas).length}</b>Tugas terkumpul</div>
-            <div className="stat" style={{ background: '#E3F5E8', color: '#1B6B30' }}><b>{d.bab.filter((b) => b.izin).length}</b>Bab dinilai mentor</div>
+            <div className="stat" style={{ background: '#DDF4E4', color: '#14692C' }}><b>{d.bab.filter((b) => b.izin).length}</b>Bab dinilai mentor</div>
           </div>
           {d.keterangan && <p className="note">{d.keterangan}</p>}
           <div className="babgrid">
             {d.bab.map((b) => (
               <div key={b.bab} className="bab" style={b.belum ? { opacity: .6 } : undefined}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{babLabel(b.bab)}</b><span className="note">{b.belum ? 'Belum selesai menonton' : b.tugas ? 'Tugas terkumpul' : 'Tugas belum'}</span></div>
-                {!b.belum && <span className="note">{b.izin || 'Belum dinilai mentor'}</span>}
+                {!b.belum && <span className="note">{b.izin ? IZIN_LABEL[IZIN.indexOf(b.izin)] : 'Belum dinilai mentor'}</span>}
                 {b.catatan && <span className="note">Catatan mentor: {b.catatan}</span>}
               </div>
             ))}
@@ -168,10 +168,15 @@ function Saya({ id, back }) {
 function Peserta({ tc, canWrite }) {
   const [list, setList] = useState(null);
   const [sel, setSel] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [qs, setQs] = useState('');
   const [err, setErr] = useState('');
   const load = useCallback(() => api('/api/peserta?tc=' + encodeURIComponent(tc)).then((j) => { setList(j.peserta); setSel((s) => s || j.peserta[0]?.id || null); }).catch((e) => setErr(e.message)), [tc]);
   useEffect(() => { load(); }, [load]);
   const p = list?.find((x) => x.id === sel);
+  const cnt = (s) => (list || []).filter((x) => x.status === s).length;
+  const shown = (list || []).filter((x) => (filter === 'all' || x.status === filter) && (!qs || (x.nama + ' ' + x.ku).toLowerCase().includes(qs.toLowerCase())));
+  const tabs = [['all', 'Semua', 'sx', (list || []).length], ...STATUS.map((s) => [s, ST[s][0], ST[s][1], cnt(s)])];
 
   return (
     <>
@@ -180,19 +185,26 @@ function Peserta({ tc, canWrite }) {
       {!list && !err && <p className="note">Memuat…</p>}
       {list && list.length === 0 && <div className="card"><h2 style={{ margin: 0 }}>Belum ada peserta</h2><p className="note" style={{ margin: 0 }}>Tidak ada peserta untuk Anda di program ini.</p></div>}
       {list && list.length > 0 && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))' }}>
-          {list.map((x) => (
-            <button key={x.id} className={'pcard' + (x.id === sel ? ' on' : '')} onClick={() => setSel(x.id)}>
-              <span className="av">{initials(x.nama)}</span>
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                <span style={{ fontWeight: 600, fontSize: 15 }}>{x.nama}</span>
-                <Chip s={x.status} />
-              </span>
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="ftabs" role="group" aria-label="Saring menurut status">
+            {tabs.map(([k, l, cls, c]) => <button key={k} className={'ftab ' + cls + (filter === k ? ' on' : '')} aria-pressed={filter === k} onClick={() => setFilter(k)}><i />{l}<b>{c}</b></button>)}
+          </div>
+          <div className="split">
+            <section className="plist" aria-label="Daftar peserta">
+              <div className="sr"><input type="text" aria-label="Cari peserta" placeholder="Cari nama atau keuskupan" value={qs} onChange={(e) => setQs(e.target.value)} /></div>
+              {shown.map((x) => (
+                <button key={x.id} className={'prow ' + ST[x.status][1] + (x.id === sel ? ' on' : '')} aria-pressed={x.id === sel} onClick={() => setSel(x.id)}>
+                  <span className={'pav ' + ST[x.status][1]}>{initials(x.nama)}</span>
+                  <span className="nm"><b>{x.nama}</b><span>{x.ku || 'Tanpa keuskupan'} · {x.bab.filter((b) => b.izin).length}/8 bab dinilai</span></span>
+                  <Chip s={x.status} />
+                </button>
+              ))}
+              {shown.length === 0 && <p className="note" style={{ padding: 20, textAlign: 'center' }}>Tidak ada peserta yang cocok.</p>}
+            </section>
+            {p && <Detail key={p.id} p={p} reload={load} canWrite={canWrite} />}
+          </div>
+        </>
       )}
-      {p && <Detail key={p.id} p={p} reload={load} canWrite={canWrite} />}
     </>
   );
 }
@@ -212,6 +224,8 @@ function Detail({ p, reload, canWrite }) {
   const wa = 'https://wa.me/' + p.hp + '?text=' + encodeURIComponent(body);
   const nBoleh = p.bab.filter((b) => b.izin === IZIN[0]).length;
   const nDamp = p.bab.filter((b) => b.izin === IZIN[1]).length;
+  const cls = ST[p.status][1];
+  const locked = p.dinilai === 0 && p.status !== 'Lulus';
 
   async function setStatus(status) {
     setMsg('');
@@ -220,43 +234,65 @@ function Detail({ p, reload, canWrite }) {
   }
 
   return (
-    <div className="card">
-      <div className="head">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span className="av" style={{ width: 56, height: 56, fontSize: 20 }}>{initials(p.nama)}</span>
-          <div><div style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em' }}>{p.nama}</div><div className="note">{p.ku}{p.usia ? ' · ' + p.usia + ' th' : ''}</div></div>
-        </div>
-        {p.hp && <button className="btn" onClick={() => setWaOpen(!waOpen)} aria-expanded={waOpen}>WhatsApp</button>}
-      </div>
-
-      {waOpen && (
-        <div className="bab">
-          <div className="seg" role="group" aria-label="Template pesan">
-            {[['tugas', 'Tugas'], ['hasil', 'Hasil'], ['bebas', 'Bebas']].map(([k, l]) => <button key={k} className={tpl === k ? 'on' : ''} onClick={() => { setTpl(k); setText(null); }}>{l}</button>)}
+    <section className={'pdetail ' + cls} aria-label="Detail peserta">
+      <div className="topbar" />
+      <div className="body">
+        <div className="head" style={{ alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+            <span className="pav lg">{initials(p.nama)}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.15 }}>{p.nama}</div>
+              <div className="note">{p.ku}{p.usia ? ' · ' + p.usia + ' th' : ''}</div>
+            </div>
           </div>
-          <textarea aria-label="Isi pesan" value={body} onChange={(e) => setText(e.target.value)} />
-          <a className="btn primary" href={wa} target="_blank" rel="noreferrer" style={{ alignSelf: 'flex-start' }}>Buka WhatsApp</a>
+          {p.hp && <button className="btn wa" onClick={() => setWaOpen(!waOpen)} aria-expanded={waOpen}>Kirim WhatsApp</button>}
         </div>
-      )}
 
-      <div>
-        <div className="lbl" style={{ marginBottom: 8 }}>Status kepesertaan</div>
-        <div className="seg" role="group" aria-label="Status kepesertaan">
-          {STATUS.map((s) => <button key={s} className={p.status === s ? 'on' : ''} aria-pressed={p.status === s} disabled={!canWrite || (s === 'Lulus' && p.dinilai === 0 && p.status !== 'Lulus')} onClick={() => p.status !== s && setStatus(s)}>{ST[s][0]}</button>)}
+        {waOpen && (
+          <div className="bab">
+            <div className="seg" role="group" aria-label="Template pesan">
+              {[['tugas', 'Tugas'], ['hasil', 'Hasil'], ['bebas', 'Bebas']].map(([k, l]) => <button key={k} className={tpl === k ? 'on' : ''} onClick={() => { setTpl(k); setText(null); }}>{l}</button>)}
+            </div>
+            <textarea aria-label="Isi pesan" value={body} onChange={(e) => setText(e.target.value)} />
+            <a className="btn primary" href={wa} target="_blank" rel="noreferrer" style={{ alignSelf: 'flex-start' }}>Buka WhatsApp</a>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <span className="lbl">Status kepesertaan</span>
+          <div className="sbtns" role="group" aria-label="Status kepesertaan">
+            {STATUS.map((s) => {
+              const off = !canWrite || (s === 'Lulus' && locked);
+              return (
+                <button key={s} className={'sbtn ' + ST[s][1] + (p.status === s ? ' on' : '')} aria-pressed={p.status === s} disabled={off} onClick={() => p.status !== s && setStatus(s)}>
+                  {ST[s][0]}
+                  {p.status === s && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
+                  {off && canWrite && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>}
+                </button>
+              );
+            })}
+          </div>
+          {locked && <span className="note">Lulus terbuka setelah minimal satu bab dinilai.</span>}
+          {msg && <span className="note" role="status">{msg}</span>}
+          {p.cekLulus !== 'OK' && <div className="err">{p.cekLulus}</div>}
         </div>
-        {p.dinilai === 0 && <div className="note" style={{ marginTop: 8 }}>Nilai minimal satu bab sebelum meluluskan.</div>}
-        {msg && <div className="note" role="status" style={{ marginTop: 8 }}>{msg}</div>}
-        {p.cekLulus !== 'OK' && <div className="err" style={{ marginTop: 8 }}>{p.cekLulus}</div>}
-      </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))' }}>
-        <div className="stat" style={{ background: '#E3F5E8', color: '#1B6B30' }}><b>{nBoleh}</b>Boleh mengajar</div>
-        <div className="stat" style={{ background: '#FFF1E0', color: '#8A4500' }}><b>{nDamp}</b>Didampingi</div>
-        <div className="stat" style={{ background: 'var(--bg)' }}><b>{8 - nBoleh - nDamp}</b>Belum dinilai</div>
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+            <span className="lbl">Penilaian bab</span>
+            <span><b>{nBoleh + nDamp}</b> dari 8 dinilai</span>
+          </div>
+          <div className="pbar" aria-hidden="true">{p.bab.map((b) => <span key={b.bab} className={b.izin === IZIN[0] ? 'ok' : b.izin === IZIN[1] ? 'dp' : ''} />)}</div>
+          <div className="legend">
+            <span><i style={{ background: '#1F8A3B' }} />{IZIN_LABEL[0]} · {nBoleh}</span>
+            <span><i style={{ background: '#C25E00' }} />{IZIN_LABEL[1]} · {nDamp}</span>
+            <span><i style={{ background: '#D2D2D7' }} />Belum dinilai · {8 - nBoleh - nDamp}</span>
+          </div>
+        </div>
 
-      <div className="babgrid">{p.bab.map((b) => <BabTile key={b.bab} b={b} reload={reload} canWrite={canWrite} />)}</div>
-    </div>
+        <div className="babgrid">{p.bab.map((b) => <BabTile key={b.bab} b={b} reload={reload} canWrite={canWrite} />)}</div>
+      </div>
+    </section>
   );
 }
 
@@ -271,17 +307,17 @@ function BabTile({ b, reload, canWrite }) {
     try { await api('/api/detail/' + b.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ izin, catatan: note }) }); setMsg('Tersimpan'); reload(); }
     catch (e) { setMsg(e.message); }
   }
-  if (!b.id) return <div className="bab" style={{ opacity: .6 }}><b>{babLabel(b.bab)}</b><span className="note">Belum selesai menonton</span></div>;
+  if (!b.id) return <div className="btile" style={{ opacity: .7 }}><b>{babLabel(b.bab)}</b><span className="note">Belum selesai menonton</span></div>;
   return (
-    <div className="bab">
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{babLabel(b.bab)}</b><span className="note">{b.tugas ? 'Tugas terkumpul' : 'Tugas belum'}</span></div>
-      <div className="seg" role="group" aria-label={'Izin ' + babLabel(b.bab)}>
-        <button className={izin === IZIN[0] ? 'on' : ''} aria-pressed={izin === IZIN[0]} disabled={!canWrite} onClick={() => setIzin(izin === IZIN[0] ? null : IZIN[0])}>Boleh</button>
-        <button className={izin === IZIN[1] ? 'on' : ''} aria-pressed={izin === IZIN[1]} disabled={!canWrite} onClick={() => setIzin(izin === IZIN[1] ? null : IZIN[1])}>Didampingi</button>
+    <div className={'btile' + (izin === IZIN[0] ? ' ok' : izin === IZIN[1] ? ' dp' : '')}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}><b style={{ fontSize: 16 }}>{babLabel(b.bab)}</b><span className="note">{b.tugas ? 'Tugas terkumpul' : 'Tugas belum'}</span></div>
+      <div className="ibtns" role="group" aria-label={'Penilaian ' + babLabel(b.bab)}>
+        <button className={'ibtn ok' + (izin === IZIN[0] ? ' on' : '')} aria-pressed={izin === IZIN[0]} disabled={!canWrite} onClick={() => setIzin(izin === IZIN[0] ? null : IZIN[0])}>{IZIN_LABEL[0]}</button>
+        <button className={'ibtn dp' + (izin === IZIN[1] ? ' on' : '')} aria-pressed={izin === IZIN[1]} disabled={!canWrite} onClick={() => setIzin(izin === IZIN[1] ? null : IZIN[1])}>{IZIN_LABEL[1]}</button>
       </div>
       {izin && <textarea readOnly={!canWrite} aria-label={'Catatan ' + babLabel(b.bab)} placeholder={izin === IZIN[1] ? 'Catatan wajib diisi' : 'Catatan (opsional)'} value={note} onChange={(e) => setNote(e.target.value)} />}
       {dirty && <button className="btn primary" disabled={needNote} onClick={save}>Simpan</button>}
-      {needNote && <span className="note">Isi catatan untuk menyimpan.</span>}
+      {needNote && <span className="note" style={{ color: '#A35200', fontWeight: 600 }}>Isi catatan untuk menyimpan.</span>}
       {msg && <span className="note" role="status">{msg}</span>}
     </div>
   );
@@ -332,10 +368,10 @@ function Rekap({ tc, setTc, setNav }) {
       {sum && (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))' }}>
           <div className="stat" style={{ background: '#fff' }}><b>{sum.total}</b>Peserta</div>
-          <div className="stat" style={{ background: '#E3F5E8', color: '#1B6B30' }}><b>{sum.Lulus}</b>Lulus</div>
-          <div className="stat" style={{ background: '#E8F1FD', color: '#0058B0' }}><b>{sum['Peserta Aktif']}</b>Aktif</div>
-          <div className="stat" style={{ background: '#FDE8EA', color: '#B3001B' }}><b>{sum['Drop Out']}</b>Drop Out</div>
-          {data.babRow && <div className="stat" style={{ background: '#FFF1E0', color: '#8A4500' }}><b>{data.babRow.tugas}</b>Tugas terkumpul · {babLabel(bab)}<span style={{ fontSize: 13 }}>{data.babRow.boleh} boleh · {data.babRow.damping} didampingi</span></div>}
+          <div className="stat" style={{ background: '#DDF4E4', color: '#14692C' }}><b>{sum.Lulus}</b>Lulus</div>
+          <div className="stat" style={{ background: '#E3EEFF', color: '#0B4FB3' }}><b>{sum['Peserta Aktif']}</b>Aktif</div>
+          <div className="stat" style={{ background: '#FFE3E0', color: '#A3180C' }}><b>{sum['Drop Out']}</b>Drop Out</div>
+          {data.babRow && <div className="stat" style={{ background: '#FFF1E0', color: '#8A4500' }}><b>{data.babRow.tugas}</b>Tugas terkumpul · {babLabel(bab)}<span style={{ fontSize: 13 }}>{data.babRow.boleh} siap mengajar · {data.babRow.damping} perlu pendampingan</span></div>}
         </div>
       )}
       {!data && !err && <p className="note">Memuat…</p>}
@@ -346,7 +382,7 @@ function Rekap({ tc, setTc, setNav }) {
             <button key={t.nama} className="pcard" style={{ flexDirection: 'column', alignItems: 'stretch', borderRadius: 24, padding: 28, gap: 18 }} onClick={() => { setTc(t.nama); setTab('pes'); }} aria-label={'Lihat tabel peserta ' + t.nama}>
               <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b style={{ fontSize: 19 }}>{t.nama}</b>{t.status && <span className="chip" style={{ background: 'var(--line)', color: 'var(--sub)' }}>{t.status}</span>}</span>
               {bars(t)}
-              <span style={{ display: 'flex', gap: 20, alignItems: 'baseline' }}><span className="note"><b style={{ fontSize: 22, color: 'var(--ink)' }}>{t.total}</b> peserta</span><span className="note"><b style={{ fontSize: 22, color: '#1B6B30' }}>{t.Lulus}</b> lulus</span><span style={{ marginLeft: 'auto', color: 'var(--blue)', fontWeight: 600 }}>Lihat tabel ›</span></span>
+              <span style={{ display: 'flex', gap: 20, alignItems: 'baseline' }}><span className="note"><b style={{ fontSize: 22, color: 'var(--ink)' }}>{t.total}</b> peserta</span><span className="note"><b style={{ fontSize: 22, color: '#14692C' }}>{t.Lulus}</b> lulus</span><span style={{ marginLeft: 'auto', color: 'var(--blue)', fontWeight: 600 }}>Lihat tabel ›</span></span>
             </button>
           ))}
         </div>
@@ -374,7 +410,7 @@ function Rekap({ tc, setTc, setNav }) {
               <div className="tr" role="row" key={r.id}>
                 <b>{r.nama}</b><span>{r.ku}</span><span style={{ color: '#424245' }}>{r.mentor}</span><Chip s={r.status} />
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {bab ? <span className="chip" style={{ background: r.babSelesai ? '#E3F5E8' : 'var(--bg)', color: r.babSelesai ? '#1B6B30' : 'var(--sub)' }}>{r.babSelesai ? 'Selesai' : 'Belum'}</span>
+                  {bab ? <span className="chip" style={{ background: r.babSelesai ? '#DDF4E4' : 'var(--bg)', color: r.babSelesai ? '#14692C' : 'var(--sub)' }}>{r.babSelesai ? 'Selesai' : 'Belum'}</span>
                     : <><span style={{ flex: 1, height: 8, borderRadius: 4, background: '#F0F0F3', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: Math.min(100, r.nonton / 9 * 100) + '%', background: '#0071E3' }} /></span><span className="note">{r.nonton}/9</span></>}
                 </span>
               </div>
