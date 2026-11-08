@@ -14,7 +14,7 @@ export async function PATCH(req, { params }) {
     const emails = String(rec.fields[H.email] || '').split(',');
     if (!u.admin && !emails.includes(u.email)) return Response.json({ error: 'Bukan peserta Anda' }, { status: 403 });
     if (status === 'Lulus' && !(rec.fields[H.dinilai] > 0)) return Response.json({ error: 'Nilai minimal satu bab sebelum meluluskan' }, { status: 422 });
-    const r = await updateOne('tblZhieD2iLA6xSxa', params.id, { [H.status]: status, [H.submittedBy]: u.email });
+    const r = await updateOne('tblZhieD2iLA6xSxa', params.id, { [H.status]: status, [H.submittedBy]: u.actor || u.email });
     return Response.json({ ok: true, status: status, id: r.id });
   } catch (e) { return Response.json({ error: e.message }, { status: 500 }); }
 }

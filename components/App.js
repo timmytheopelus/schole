@@ -13,12 +13,13 @@ async function api(url, opt) {
   return j;
 }
 const Icon = ({ d }) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>;
-const IC = { peserta: 'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M21 19v-1a4 4 0 0 0-3-3.87 M16 4.13a3 3 0 0 1 0 5.74', rekap: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', users: 'M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1' };
+const IC = { home: 'M3 11l9-8 9 8 M5 10v10h14V10', peserta: 'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M21 19v-1a4 4 0 0 0-3-3.87 M16 4.13a3 3 0 0 1 0 5.74', rekap: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', users: 'M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1' };
 
 export default function App({ user }) {
   const [tcs, setTcs] = useState(null);
   const [tc, setTc] = useState('');
-  const [nav, setNav] = useState('peserta');
+  const [nav, setNav] = useState('beranda');
+  const [saya, setSaya] = useState(null);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -36,10 +37,12 @@ export default function App({ user }) {
           </select>
         </div>
         <nav aria-label="Menu utama">
+          <button className={'nav' + (nav === 'beranda' || nav === 'saya' ? ' on' : '')} onClick={() => setNav('beranda')}><Icon d={IC.home} />Beranda</button>
           <button className={'nav' + (nav === 'peserta' ? ' on' : '')} onClick={() => setNav('peserta')} aria-current={nav === 'peserta' ? 'page' : undefined}><Icon d={IC.peserta} />Peserta</button>
           {user.viewAll && <button className={'nav' + (nav === 'rekap' ? ' on' : '')} onClick={() => setNav('rekap')} aria-current={nav === 'rekap' ? 'page' : undefined}><Icon d={IC.rekap} />Rekap</button>}
           {user.admin && <button className={'nav' + (nav === 'pengguna' ? ' on' : '')} onClick={() => setNav('pengguna')} aria-current={nav === 'pengguna' ? 'page' : undefined}><Icon d={IC.users} />Pengguna</button>}
         </nav>
+        {user.admin && <ViewAs />}
         <div className="me">
           <span className="lbl">Masuk sebagai</span>
           <span>{user.name} · {user.level}</span>
@@ -47,13 +50,117 @@ export default function App({ user }) {
         </div>
       </aside>
       <main className="main">
+        {user.viewingAs && (
+          <div className="err" role="status" style={{ background: '#FFF1E0', color: '#8A4500', display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+            <span>Mode lihat sebagai: <b>{user.name}</b>. Perubahan dicatat atas nama {user.actor}.</span>
+            <button className="btn" onClick={async () => { await api('/api/viewas', { method: 'DELETE' }); location.reload(); }}>Keluar dari mode ini</button>
+          </div>
+        )}
         {err && <div className="err" role="alert">{err}</div>}
-        {tcs && tcs.length === 0 && <div className="card"><h2 style={{ margin: 0 }}>Belum ada program</h2><p className="note" style={{ margin: 0 }}>Email {user.email} belum terdaftar sebagai mentor di Airtable.</p></div>}
+        {tcs && tcs.length === 0 && nav !== 'beranda' && nav !== 'saya' && <div className="card"><h2 style={{ margin: 0 }}>Belum ada program</h2><p className="note" style={{ margin: 0 }}>Email {user.email} belum terdaftar sebagai mentor di Airtable.</p></div>}
+        {nav === 'beranda' && <Beranda user={user} openMentor={(n) => { setTc(n); setNav('peserta'); }} openSaya={(id) => { setSaya(id); setNav('saya'); }} />}
+        {nav === 'saya' && saya && <Saya id={saya} back={() => setNav('beranda')} />}
         {tc && nav === 'peserta' && <Peserta key={tc} tc={tc} canWrite={user.canWrite} />}
         {nav === 'pengguna' && user.admin && <Users me={user.email} />}
         {tc && nav === 'rekap' && user.viewAll && <Rekap tc={tc} setTc={setTc} setNav={setNav} />}
       </main>
     </div>
+  );
+}
+
+/* ---------------- BERANDA ---------------- */
+function ViewAs() {
+  const [list, setList] = useState(null);
+  const [v, setV] = useState('');
+  const [err, setErr] = useState('');
+  useEffect(() => { api('/api/viewas').then((j) => setList(j.mentors)).catch((e) => setErr(e.message)); }, []);
+  async function go() { try { await api('/api/viewas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: v }) }); location.reload(); } catch (e) { setErr(e.message); } }
+  return (
+    <div className="field">
+      <label className="lbl" htmlFor="va">Lihat sebagai mentor</label>
+      <select id="va" value={v} onChange={(e) => setV(e.target.value)}>
+        <option value="">{list ? 'Pilih mentor…' : 'Memuat…'}</option>
+        {(list || []).map((m) => <option key={m.email} value={m.email}>{m.nama || m.email}</option>)}
+      </select>
+      <button className="btn" disabled={!v} onClick={go} style={{ marginTop: 6 }}>Lihat tampilan</button>
+      {err && <span className="note">{err}</span>}
+    </div>
+  );
+}
+
+function Beranda({ user, openMentor, openSaya }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => { api('/api/home').then(setD).catch((e) => setErr(e.message)); }, []);
+  const first = (user.name || '').split(/\s+/)[0];
+  return (
+    <>
+      <div className="head"><div><h1>Selamat datang{first ? ', ' + first : ''}</h1><div className="subt">Pilih program untuk melihat detailnya.</div></div></div>
+      {err && <div className="err" role="alert">{err}</div>}
+      {!d && !err && <p className="note">Memuat…</p>}
+      {d && (
+        <>
+          <h2 style={{ margin: '8px 0' }}>Sebagai mentor</h2>
+          {d.mentor.length === 0 && <p className="note">Anda tidak terdaftar sebagai mentor di program mana pun.</p>}
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))' }}>
+            {d.mentor.map((t) => (
+              <button key={t.nama} className="pcard" onClick={() => openMentor(t.nama)}>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left' }}>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>{t.nama}</span>
+                  <span className="note">{t.total} peserta · {t.lulus} lulus</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <h2 style={{ margin: '20px 0 8px' }}>Sebagai peserta</h2>
+          {d.peserta.length === 0 && <p className="note">Anda tidak terdaftar sebagai peserta di program mana pun.</p>}
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))' }}>
+            {d.peserta.map((t) => (
+              <button key={t.id} className="pcard" onClick={() => openSaya(t.id)}>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left' }}>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>{t.nama}</span>
+                  <Chip s={t.status} />
+                  <span className="note">{t.nonton} video selesai · {t.dinilai} bab dinilai</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function Saya({ id, back }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => { api('/api/saya/' + id).then(setD).catch((e) => setErr(e.message)); }, [id]);
+  return (
+    <>
+      <div className="head"><div><h1>Progres belajar saya</h1><div className="subt">{d?.tc}</div></div><button className="btn" onClick={back}>Kembali</button></div>
+      {err && <div className="err" role="alert">{err}</div>}
+      {!d && !err && <p className="note">Memuat…</p>}
+      {d && (
+        <div className="card">
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><Chip s={d.status} />{d.mentor && <span className="note">Mentor: {d.mentor}</span>}</div>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))' }}>
+            <div className="stat" style={{ background: 'var(--bg)' }}><b>{d.nonton}</b>Video selesai</div>
+            <div className="stat" style={{ background: 'var(--bg)' }}><b>{d.bab.filter((b) => b.tugas).length}</b>Tugas terkumpul</div>
+            <div className="stat" style={{ background: '#E3F5E8', color: '#1B6B30' }}><b>{d.bab.filter((b) => b.izin).length}</b>Bab dinilai mentor</div>
+          </div>
+          {d.keterangan && <p className="note">{d.keterangan}</p>}
+          <div className="babgrid">
+            {d.bab.map((b) => (
+              <div key={b.bab} className="bab" style={b.belum ? { opacity: .6 } : undefined}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{babLabel(b.bab)}</b><span className="note">{b.belum ? 'Belum selesai menonton' : b.tugas ? 'Tugas terkumpul' : 'Tugas belum'}</span></div>
+                {!b.belum && <span className="note">{b.izin || 'Belum dinilai mentor'}</span>}
+                {b.catatan && <span className="note">Catatan mentor: {b.catatan}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

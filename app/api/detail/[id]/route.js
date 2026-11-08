@@ -15,7 +15,7 @@ export async function PATCH(req, { params }) {
     const rec = await getOne('tblHdbfsd6vT0pxp5', params.id, [D.email]);
     const emails = String(rec.fields[D.email] || '').split(',');
     if (!u.admin && !emails.includes(u.email)) return Response.json({ error: 'Bukan peserta Anda' }, { status: 403 });
-    await updateOne('tblHdbfsd6vT0pxp5', params.id, { [D.izin]: izin, [D.catatan]: note, [D.oleh]: u.email, [D.tgl]: new Date().toISOString() });
+    await updateOne('tblHdbfsd6vT0pxp5', params.id, { [D.izin]: izin, [D.catatan]: note, [D.oleh]: u.actor || u.email, [D.tgl]: new Date().toISOString() });
     return Response.json({ ok: true });
   } catch (e) { return Response.json({ error: e.message }, { status: 500 }); }
 }
