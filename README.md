@@ -31,3 +31,12 @@ Tabel **Akses Portal Schole** (base BPN PKKI) menyimpan pengguna dan levelnya:
 Aktif tidak dicentang = ditolak masuk. Mentor tanpa baris di tabel tetap bisa masuk sebagai Mentor.
 `SUPERADMIN_EMAILS` di Vercel tetap berlaku sebagai cadangan agar tidak ada yang terkunci.
 Token Airtable harus punya akses ke base Schole **dan** base BPN PKKI.
+
+## Catatan data (hasil audit 8 Nov 2026)
+- **Lulus tanpa penilaian bab**: 110 peserta TC SHDR BPN PKKI berstatus Lulus tetapi 0 bab dinilai. Status ini diimpor pada 24 Juli 2026 beserta teks di *Keterangan Kelulusan*, sebelum kolom *Izin Mengajar* dipakai. Aplikasi menampilkannya sebagai "data historis", bukan galat. Kolom *Cek Kelulusan* di Airtable tetap menandainya.
+- **Drop Out dengan 9/9 video**: 32 peserta. Alasannya ada di *Keterangan Kelulusan* (mis. mengundurkan diri, tidak mengerjakan tugas) dan kini ditampilkan di detail peserta dan tabel Rekap.
+- **Sel mentor berisi beberapa orang** ("Nama-+62...-Kota, Nama2-+62...-Kota"): dipecah di `lib/team.js`. Orang yang sama sebagai Mentor dan Co-Mentor hanya tampil sekali.
+- **Bab per program**: daftar bab tetap hanya untuk program yang namanya memuat "SHDR". Program lain memakai bab dari datanya; program kosong menampilkan empty state.
+- **Lihat sebagai mentor** kini hanya-lihat. Perubahan data dilakukan sebagai Superadmin.
+- Alamat halaman menyimpan menu dan program (`?m=peserta&tc=...`); pilihan program terakhir diingat di browser.
+- Opsional: `NEXT_PUBLIC_ADMIN_CONTACT` (mis. email/WA admin) ditampilkan di halaman login.

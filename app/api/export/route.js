@@ -25,9 +25,9 @@ export async function GET(req) {
     r.perBab.forEach((b) => s3.addRow([babLabel(b.bab), b.nonton, b.tugas, b.boleh, b.damping]));
     s3.columns.forEach((c, i) => (c.width = i ? 18 : 22));
     const s4 = wb.addWorksheet('Peserta');
-    s4.addRow(['Nama', 'Keuskupan', 'Mentor', 'Status', 'Video selesai', 'Bab dinilai'].concat(bab ? [babLabel(bab)] : [])).font = { bold: true };
-    r.rows.forEach((x) => s4.addRow([x.nama, x.ku, x.mentor, x.status, x.nonton, x.dinilai].concat(bab ? [x.babSelesai ? 'Selesai' : 'Belum'] : [])));
-    [30, 20, 28, 14, 14, 12, 14].forEach((w, i) => (s4.getColumn(i + 1).width = w));
+    s4.addRow(['Nama', 'Keuskupan', 'Mentor', 'Status', 'Video selesai', 'Bab dinilai', 'Keterangan (Drop Out)'].concat(bab ? [babLabel(bab)] : [])).font = { bold: true };
+    r.rows.forEach((x) => s4.addRow([x.nama, x.ku, x.mentor, x.status, x.nonton, x.dinilai, x.ket || ''].concat(bab ? [x.babSelesai ? 'Selesai' : 'Belum'] : [])));
+    [30, 20, 28, 14, 14, 12, 40, 14].forEach((w, i) => (s4.getColumn(i + 1).width = w));
     const buf = await wb.xlsx.writeBuffer();
     const name = `Rekap-${tc}-${ku || 'semua-keuskupan'}${bab ? '-' + babLabel(bab) : ''}.xlsx`.replace(/[^\w.-]+/g, '-');
     return new Response(buf, { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="${name}"` } });
