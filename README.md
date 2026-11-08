@@ -37,6 +37,6 @@ Token Airtable harus punya akses ke base Schole **dan** base BPN PKKI.
 - **Drop Out dengan 9/9 video**: 32 peserta. Alasannya ada di *Keterangan Kelulusan* (mis. mengundurkan diri, tidak mengerjakan tugas) dan kini ditampilkan di detail peserta dan tabel Rekap.
 - **Sel mentor berisi beberapa orang** ("Nama-+62...-Kota, Nama2-+62...-Kota"): dipecah di `lib/team.js`. Orang yang sama sebagai Mentor dan Co-Mentor hanya tampil sekali.
 - **Bab per program**: daftar bab tetap hanya untuk program yang namanya memuat "SHDR". Program lain memakai bab dari datanya; program kosong menampilkan empty state.
-- **Lihat sebagai mentor** kini hanya-lihat. Perubahan data dilakukan sebagai Superadmin.
+- **Lihat sebagai mentor** tetap bisa mengedit data mentor tersebut, tetapi perubahan dicatat atas nama Superadmin yang sedang melihat (bukan mentor).
 - Alamat halaman menyimpan menu dan program (`?m=peserta&tc=...`); pilihan program terakhir diingat di browser.
 - Opsional: `NEXT_PUBLIC_ADMIN_CONTACT` (mis. email/WA admin) ditampilkan di halaman login.
