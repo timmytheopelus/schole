@@ -4,8 +4,8 @@ import { listTc } from '@/lib/queries';
 
 export async function GET(req) {
   const u = await currentUser();
-  if (!u) return Response.json({ error: 'unauthorized' }, { status: 401 });
-  if (!u.admin) return Response.json({ error: 'forbidden' }, { status: 403 });
+  if (!u || u.blocked) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  if (!u.viewAll) return Response.json({ error: 'forbidden' }, { status: 403 });
   const p = new URL(req.url).searchParams;
   try {
     if (p.get('overview')) {

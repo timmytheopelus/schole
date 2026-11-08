@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
-import { BAB, IZIN, STATUS, babLabel } from '@/lib/config';
+import { BAB, IZIN, STATUS, LEVEL, babLabel } from '@/lib/config';
 
 const ST = { 'Peserta Aktif': ['Aktif', '#E8F1FD', '#0058B0'], Lulus: ['Lulus', '#E3F5E8', '#1B6B30'], 'Drop Out': ['Drop Out', '#FDE8EA', '#B3001B'] };
 const Chip = ({ s }) => <span className="chip" style={{ background: ST[s]?.[1], color: ST[s]?.[2] }}>{ST[s]?.[0] || s}</span>;
@@ -13,7 +13,7 @@ async function api(url, opt) {
   return j;
 }
 const Icon = ({ d }) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>;
-const IC = { peserta: 'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M21 19v-1a4 4 0 0 0-3-3.87 M16 4.13a3 3 0 0 1 0 5.74', rekap: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2' };
+const IC = { peserta: 'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M21 19v-1a4 4 0 0 0-3-3.87 M16 4.13a3 3 0 0 1 0 5.74', rekap: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', users: 'M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1' };
 
 export default function App({ user }) {
   const [tcs, setTcs] = useState(null);
@@ -37,26 +37,28 @@ export default function App({ user }) {
         </div>
         <nav aria-label="Menu utama">
           <button className={'nav' + (nav === 'peserta' ? ' on' : '')} onClick={() => setNav('peserta')} aria-current={nav === 'peserta' ? 'page' : undefined}><Icon d={IC.peserta} />Peserta</button>
-          {user.admin && <button className={'nav' + (nav === 'rekap' ? ' on' : '')} onClick={() => setNav('rekap')} aria-current={nav === 'rekap' ? 'page' : undefined}><Icon d={IC.rekap} />Rekap</button>}
+          {user.viewAll && <button className={'nav' + (nav === 'rekap' ? ' on' : '')} onClick={() => setNav('rekap')} aria-current={nav === 'rekap' ? 'page' : undefined}><Icon d={IC.rekap} />Rekap</button>}
+          {user.admin && <button className={'nav' + (nav === 'pengguna' ? ' on' : '')} onClick={() => setNav('pengguna')} aria-current={nav === 'pengguna' ? 'page' : undefined}><Icon d={IC.users} />Pengguna</button>}
         </nav>
         <div className="me">
           <span className="lbl">Masuk sebagai</span>
-          <span>{user.name}{user.admin ? ' · Superadmin' : ' · Mentor'}</span>
+          <span>{user.name} · {user.level}</span>
           <button className="btn" onClick={() => signOut({ callbackUrl: '/login' })}>Keluar</button>
         </div>
       </aside>
       <main className="main">
         {err && <div className="err" role="alert">{err}</div>}
         {tcs && tcs.length === 0 && <div className="card"><h2 style={{ margin: 0 }}>Belum ada program</h2><p className="note" style={{ margin: 0 }}>Email {user.email} belum terdaftar sebagai mentor di Airtable.</p></div>}
-        {tc && nav === 'peserta' && <Peserta key={tc} tc={tc} />}
-        {tc && nav === 'rekap' && user.admin && <Rekap tc={tc} setTc={setTc} setNav={setNav} />}
+        {tc && nav === 'peserta' && <Peserta key={tc} tc={tc} canWrite={user.canWrite} />}
+        {nav === 'pengguna' && user.admin && <Users me={user.email} />}
+        {tc && nav === 'rekap' && user.viewAll && <Rekap tc={tc} setTc={setTc} setNav={setNav} />}
       </main>
     </div>
   );
 }
 
 /* ---------------- PESERTA ---------------- */
-function Peserta({ tc }) {
+function Peserta({ tc, canWrite }) {
   const [list, setList] = useState(null);
   const [sel, setSel] = useState(null);
   const [err, setErr] = useState('');
@@ -83,12 +85,12 @@ function Peserta({ tc }) {
           ))}
         </div>
       )}
-      {p && <Detail key={p.id} p={p} reload={load} />}
+      {p && <Detail key={p.id} p={p} reload={load} canWrite={canWrite} />}
     </>
   );
 }
 
-function Detail({ p, reload }) {
+function Detail({ p, reload, canWrite }) {
   const [msg, setMsg] = useState('');
   const [waOpen, setWaOpen] = useState(false);
   const [tpl, setTpl] = useState('hasil');
@@ -133,7 +135,7 @@ function Detail({ p, reload }) {
       <div>
         <div className="lbl" style={{ marginBottom: 8 }}>Status kepesertaan</div>
         <div className="seg" role="group" aria-label="Status kepesertaan">
-          {STATUS.map((s) => <button key={s} className={p.status === s ? 'on' : ''} aria-pressed={p.status === s} disabled={s === 'Lulus' && p.dinilai === 0 && p.status !== 'Lulus'} onClick={() => p.status !== s && setStatus(s)}>{ST[s][0]}</button>)}
+          {STATUS.map((s) => <button key={s} className={p.status === s ? 'on' : ''} aria-pressed={p.status === s} disabled={!canWrite || (s === 'Lulus' && p.dinilai === 0 && p.status !== 'Lulus')} onClick={() => p.status !== s && setStatus(s)}>{ST[s][0]}</button>)}
         </div>
         {p.dinilai === 0 && <div className="note" style={{ marginTop: 8 }}>Nilai minimal satu bab sebelum meluluskan.</div>}
         {msg && <div className="note" role="status" style={{ marginTop: 8 }}>{msg}</div>}
@@ -146,12 +148,12 @@ function Detail({ p, reload }) {
         <div className="stat" style={{ background: 'var(--bg)' }}><b>{8 - nBoleh - nDamp}</b>Belum dinilai</div>
       </div>
 
-      <div className="babgrid">{p.bab.map((b) => <BabTile key={b.bab} b={b} reload={reload} />)}</div>
+      <div className="babgrid">{p.bab.map((b) => <BabTile key={b.bab} b={b} reload={reload} canWrite={canWrite} />)}</div>
     </div>
   );
 }
 
-function BabTile({ b, reload }) {
+function BabTile({ b, reload, canWrite }) {
   const [izin, setIzin] = useState(b.izin);
   const [note, setNote] = useState(b.catatan);
   const [msg, setMsg] = useState('');
@@ -167,10 +169,10 @@ function BabTile({ b, reload }) {
     <div className="bab">
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{babLabel(b.bab)}</b><span className="note">{b.tugas ? 'Tugas terkumpul' : 'Tugas belum'}</span></div>
       <div className="seg" role="group" aria-label={'Izin ' + babLabel(b.bab)}>
-        <button className={izin === IZIN[0] ? 'on' : ''} aria-pressed={izin === IZIN[0]} onClick={() => setIzin(izin === IZIN[0] ? null : IZIN[0])}>Boleh</button>
-        <button className={izin === IZIN[1] ? 'on' : ''} aria-pressed={izin === IZIN[1]} onClick={() => setIzin(izin === IZIN[1] ? null : IZIN[1])}>Didampingi</button>
+        <button className={izin === IZIN[0] ? 'on' : ''} aria-pressed={izin === IZIN[0]} disabled={!canWrite} onClick={() => setIzin(izin === IZIN[0] ? null : IZIN[0])}>Boleh</button>
+        <button className={izin === IZIN[1] ? 'on' : ''} aria-pressed={izin === IZIN[1]} disabled={!canWrite} onClick={() => setIzin(izin === IZIN[1] ? null : IZIN[1])}>Didampingi</button>
       </div>
-      {izin && <textarea aria-label={'Catatan ' + babLabel(b.bab)} placeholder={izin === IZIN[1] ? 'Catatan wajib diisi' : 'Catatan (opsional)'} value={note} onChange={(e) => setNote(e.target.value)} />}
+      {izin && <textarea readOnly={!canWrite} aria-label={'Catatan ' + babLabel(b.bab)} placeholder={izin === IZIN[1] ? 'Catatan wajib diisi' : 'Catatan (opsional)'} value={note} onChange={(e) => setNote(e.target.value)} />}
       {dirty && <button className="btn primary" disabled={needNote} onClick={save}>Simpan</button>}
       {needNote && <span className="note">Isi catatan untuk menyimpan.</span>}
       {msg && <span className="note" role="status">{msg}</span>}
@@ -275,6 +277,64 @@ function Rekap({ tc, setTc, setNav }) {
           <span className="note">{rows.length} dari {data.rows.length} peserta</span>
         </div>
       )}
+    </>
+  );
+}
+
+/* ---------------- PENGGUNA (superadmin) ---------------- */
+function Users({ me }) {
+  const [users, setUsers] = useState(null);
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+  const [form, setForm] = useState({ email: '', nama: '', level: 'Mentor' });
+  const [qs, setQs] = useState('');
+  const load = useCallback(() => api('/api/users').then((j) => setUsers(j.users)).catch((e) => setErr(e.message)), []);
+  useEffect(() => { load(); }, [load]);
+
+  async function add(e) {
+    e.preventDefault(); setErr(''); setMsg('');
+    try { await api('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) }); setForm({ email: '', nama: '', level: 'Mentor' }); setMsg('Pengguna ditambahkan'); load(); }
+    catch (x) { setErr(x.message); }
+  }
+  async function patch(id, body) {
+    setErr(''); setMsg('');
+    try { await api('/api/users/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); setMsg('Tersimpan'); load(); }
+    catch (x) { setErr(x.message); }
+  }
+  const rows = (users || []).filter((u) => !qs || (u.email + ' ' + u.nama).toLowerCase().includes(qs.toLowerCase()));
+  const desc = { Superadmin: 'Semua fitur dan kelola pengguna', Mentor: 'Peserta miliknya saja', Pengamat: 'Lihat rekap dan unduh Excel' };
+
+  return (
+    <>
+      <div className="head"><div><h1>Pengguna</h1><div className="subt">Atur siapa yang boleh masuk dan apa yang boleh dilakukan</div></div></div>
+      {err && <div className="err" role="alert">{err}</div>}
+      {msg && <div className="note" role="status">{msg}</div>}
+      <form className="card" onSubmit={add}>
+        <div className="lbl">Tambah pengguna</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <input type="text" aria-label="Email Google" placeholder="Email Google" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={{ flex: '2 1 240px' }} required />
+          <input type="text" aria-label="Nama" placeholder="Nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} style={{ flex: '1 1 180px' }} />
+          <select aria-label="Level akses" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })}>{LEVEL.map((l) => <option key={l}>{l}</option>)}</select>
+          <button className="btn primary" type="submit">Tambah</button>
+        </div>
+        <div className="note">{desc[form.level]}. Mentor tanpa baris di sini tetap bisa masuk lewat Email Mentor di Schole, dengan level Mentor.</div>
+      </form>
+      <div className="card">
+        <input type="text" aria-label="Cari pengguna" placeholder="Cari email atau nama" value={qs} onChange={(e) => setQs(e.target.value)} style={{ borderRadius: 999, background: 'var(--bg)', maxWidth: 320 }} />
+        {!users && !err && <p className="note">Memuat…</p>}
+        <div className="tbl"><div className="tin" role="table" aria-label="Daftar pengguna" style={{ minWidth: 640 }}>
+          <div className="tr th" role="row" style={{ gridTemplateColumns: 'minmax(220px,2fr) minmax(140px,1.4fr) 150px 90px' }}><span>Email</span><span>Nama</span><span>Level</span><span>Aktif</span></div>
+          {rows.map((u) => (
+            <div className="tr" role="row" key={u.id} style={{ gridTemplateColumns: 'minmax(220px,2fr) minmax(140px,1.4fr) 150px 90px', opacity: u.aktif ? 1 : .55 }}>
+              <b style={{ wordBreak: 'break-all' }}>{u.email}{u.email === me ? ' (Anda)' : ''}</b>
+              <span>{u.nama}</span>
+              <select aria-label={'Level ' + u.email} value={u.level} onChange={(e) => patch(u.id, { level: e.target.value })}>{LEVEL.map((l) => <option key={l}>{l}</option>)}</select>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={u.aktif} onChange={(e) => patch(u.id, { aktif: e.target.checked })} style={{ width: 22, height: 22 }} aria-label={'Aktif ' + u.email} /></label>
+            </div>
+          ))}
+        </div></div>
+        {users && rows.length === 0 && <p className="note">Tidak ada pengguna yang cocok.</p>}
+      </div>
     </>
   );
 }

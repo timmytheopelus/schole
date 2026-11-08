@@ -5,7 +5,8 @@ import { D, IZIN } from '@/lib/config';
 // Simpan penilaian satu bab. Catatan wajib jika "Boleh mengajar, didampingi". Boleh diubah kapan saja (juga setelah Lulus).
 export async function PATCH(req, { params }) {
   const u = await currentUser();
-  if (!u) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  if (!u || u.blocked) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  if (!u.canWrite) return Response.json({ error: 'Level Pengamat hanya bisa melihat' }, { status: 403 });
   const { izin, catatan } = await req.json();
   if (izin !== null && !IZIN.includes(izin)) return Response.json({ error: 'Izin tidak valid' }, { status: 400 });
   const note = String(catatan || '').trim();

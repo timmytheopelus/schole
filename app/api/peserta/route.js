@@ -4,7 +4,7 @@ import { H, D, BAB } from '@/lib/config';
 
 export async function GET(req) {
   const u = await currentUser();
-  if (!u) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  if (!u || u.blocked) return Response.json({ error: 'unauthorized' }, { status: 401 });
   const tc = new URL(req.url).searchParams.get('tc');
   if (!tc) return Response.json({ peserta: [] });
   try {

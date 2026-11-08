@@ -20,5 +20,14 @@ export default async function Home() {
   }
   const u = await currentUser();
   if (!u) redirect('/login');
+  if (u.blocked) {
+    return (
+      <main className="login">
+        <div className="logo">σ</div>
+        <h1>Akses ditolak</h1>
+        <p>Akun {u.email} dinonaktifkan. Hubungi superadmin Schole.</p>
+      </main>
+    );
+  }
   return <App user={u} />;
 }

@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 export async function GET(req) {
   const u = await currentUser();
-  if (!u || !u.admin) return Response.json({ error: 'forbidden' }, { status: 403 });
+  if (!u || u.blocked || !u.viewAll) return Response.json({ error: 'forbidden' }, { status: 403 });
   const p = new URL(req.url).searchParams;
   const tc = p.get('tc'), ku = p.get('ku') || '', bab = p.get('bab') || '';
   try {

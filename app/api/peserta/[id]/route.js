@@ -5,7 +5,8 @@ import { H, STATUS } from '@/lib/config';
 // Ubah status kepesertaan (Peserta Aktif / Lulus / Drop Out). Lulus harus punya minimal 1 bab dinilai.
 export async function PATCH(req, { params }) {
   const u = await currentUser();
-  if (!u) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  if (!u || u.blocked) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  if (!u.canWrite) return Response.json({ error: 'Level Pengamat hanya bisa melihat' }, { status: 403 });
   const { status } = await req.json();
   if (!STATUS.includes(status)) return Response.json({ error: 'Status tidak valid' }, { status: 400 });
   try {

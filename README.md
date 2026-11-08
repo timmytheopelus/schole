@@ -22,3 +22,12 @@ Karena rollup dan formula dihitung Airtable, data yang diinput manual di Airtabl
 3. Deploy.
 
 Mentor dikenali dari email Google yang sama dengan **Email Mentor** di Airtable.
+
+## Level akses
+Tabel **Akses Portal Schole** (base BPN PKKI) menyimpan pengguna dan levelnya:
+- **Superadmin**: semua fitur, rekap, unduh Excel, kelola pengguna (menu Pengguna).
+- **Mentor**: hanya peserta miliknya (dicocokkan lewat Email Mentor di Schole).
+- **Pengamat**: lihat peserta, rekap dan unduh Excel; tidak bisa mengubah.
+Aktif tidak dicentang = ditolak masuk. Mentor tanpa baris di tabel tetap bisa masuk sebagai Mentor.
+`SUPERADMIN_EMAILS` di Vercel tetap berlaku sebagai cadangan agar tidak ada yang terkunci.
+Token Airtable harus punya akses ke base Schole **dan** base BPN PKKI.
