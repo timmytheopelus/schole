@@ -40,3 +40,10 @@ Token Airtable harus punya akses ke base Schole **dan** base BPN PKKI.
 - **Lihat sebagai mentor** tetap bisa mengedit data mentor tersebut, tetapi perubahan dicatat atas nama Superadmin yang sedang melihat (bukan mentor).
 - Alamat halaman menyimpan menu dan program (`?m=peserta&tc=...`); pilihan program terakhir diingat di browser.
 - Opsional: `NEXT_PUBLIC_ADMIN_CONTACT` (mis. email/WA admin) ditampilkan di halaman login.
+
+## Survei kelulusan (link pribadi per mentor)
+Halaman `/survei/<token>` untuk mentor mengisi Lulus / Tidak lulus / Mundur per peserta, bab yang lulus dan memo. Tanpa login: tiap mentor menerima link pribadi yang ditandatangani.
+- Env baru di Vercel: `SURVEY_SECRET` (acak; bila kosong dipakai `NEXTAUTH_SECRET`). Opsional: `SURVEY_DEADLINE` (default 2026-11-17T18:00:00+07:00), `SURVEY_TC`, `SURVEY_LOCK=1` (kunci peserta setelah Kirim; kosong = uji coba, tetap bisa diedit).
+- Buat link: `SURVEY_SECRET=... node scripts/survei-link.mjs "email@mentor.com" "Noviyanti" https://domain.vercel.app`
+- Peserta dicocokkan lewat nama mentor (kolom Nama Mentor); Co-Mentor dikenali dari lookup Co-Mentor.
+- Simpan menulis Izin Mengajar/Catatan Mentor (LMS Detail) dan Status Kepesertaan; Kirim mengisi KelulusanSubmittedBy.
